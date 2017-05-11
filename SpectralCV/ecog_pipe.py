@@ -26,6 +26,10 @@ def getTimeFile(mydata_path, session_num):
     timefile = io.loadmat(data_path + 'Condition.mat', squeeze_me=True)
     return timefile
 
+def getFreq(data, fs, nperseg, noverlap):
+    f_axis, f_time, spg = sig.spectrogram(data, fs=fs, nperseg=fs, noverlap=fs)
+    return len(f_axis)
+
 def conditionInfo(timefile):
     return(timefile['ConditionLabel'])
 
