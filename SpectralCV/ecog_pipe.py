@@ -8,7 +8,7 @@ import numpy as np
 import scipy as sp
 import scipy.io as io
 import scipy.signal as sig
-import scv
+from neurodsp import spectral
 
 def getECoGdata(mydata_path, session_num, chan):
     """
@@ -62,7 +62,7 @@ def getTimeFile(mydata_path, session_num):
     return timefile
 
 def getFreq(data, fs, nperseg, noverlap):
-     """
+    """
         getting the amount of frequency window for the x-axis.
         
     Parameters
@@ -257,9 +257,9 @@ def monkeyBread(data_path, chan, fs, nperseg, noverlap):
     f_axis, f_time, spg = sig.spectrogram(data, fs=fs, nperseg=nperseg, noverlap=noverlap)
     frequency = len(f_axis)
     bread = np.zeros((cond, chan-1, frequency))
-    session1(bread=bread, data_path=data_path, chan=chan, fs=fs, nperseg=nperseg, noverlap=noverlap)
-    session2(bread=bread, data_path=data_path, chan=chan, fs=fs, nperseg=nperseg, noverlap=noverlap)
-    session3(bread=bread, data_path=data_path, chan=chan, fs=fs, nperseg=nperseg, noverlap=noverlap)
+    bread = session1(bread=bread, data_path=data_path, chan=chan, fs=fs, nperseg=nperseg, noverlap=noverlap)
+    bread = session2(bread=bread, data_path=data_path, chan=chan, fs=fs, nperseg=nperseg, noverlap=noverlap)
+    bread = session3(bread=bread, data_path=data_path, chan=chan, fs=fs, nperseg=nperseg, noverlap=noverlap)
     return bread
 
 def session1(bread, data_path, chan, fs, nperseg, noverlap):
@@ -294,15 +294,25 @@ def session1(bread, data_path, chan, fs, nperseg, noverlap):
         #grabbing TimeFile from session 1 to set the indices for each condition
         tf1 = getTimeFile(data_path, 1)    
         # AwakeEyesOpened
-        s1start1 = getStart(tf1, 0)
-        s1end1 = getEnd(tf1, 1)
-        s1SP1 = getSP(data, s1start1, s1end1, fs, nperseg, noverlap)
-        bread[0][i-1][:] = scv(s1SP1)
+        s1start1 = int(getStart(tf1, 0)*fs)
+        s1end1 = int(getEnd(tf1, 1)*fs)
+        bread[0][i-1][:] = spectral.scv(data[s1start1:s1end1],fs,nperseg=int(fs),noverlap=noverlap,outlierpct=5.)[1]
+        #print(fs, s1start1, s1end1)
+        #print(len(f_), f_)
+        #print(len(scv_), scv_)
+        
+        #print(len(spectral.scv(data[s1start1:s1end1],fs,nperseg=int(fs),noverlap=noverlap)[0]))
+        #print(len(spectral.scv(data[s1start1:s1end1],fs,nperseg=int(fs),noverlap=noverlap)[1]))
+        #print(bread.shape)
+    
+                
         #AwakeEyesClosed
-        s1start2 = getStart(tf1, 2)
-        s1end2 = getEnd(tf1, 3)
-        s1SP2 = getSP(data, s1start2, s1end2, fs, nperseg, noverlap)
-        bread[1][i-1][:] =scv.scv(s1SP2)
+        s1start2 = int(getStart(tf1, 2)*fs)
+        s1end2 = int(getEnd(tf1, 3)*fs)
+        #s1SP2 = getSP(data, s1start2, s1end2, fs, nperseg, noverlap)
+        
+        bread[1][i-1][:] = spectral.scv(data[s1start2:s1end2], fs,nperseg=int(fs),noverlap=noverlap,outlierpct=5.)[1]
+    return bread
 
 def session2(bread, data_path, chan, fs, nperseg, noverlap):
     """
@@ -340,15 +350,17 @@ def session2(bread, data_path, chan, fs, nperseg, noverlap):
             #grabbing TimeFile from session 2 to set the indices for each condition
             tf2 = getTimeFile(data_path, 2)    
             #Anesthetized-Start
-            s2start1 = getStart(tf2, 1)
-            s2end1 = getEnd(tf2, 2)
-            s2SP1 = getSP(data, s2start1, s2end1, fs, nperseg, noverlap)
-            bread[2][i-1][:] = scv(s2SP1)
+            s2start1 = int(getStart(tf2, 1)*fs)
+            s2end1 = int(getEnd(tf2, 2)*fs)
+
+            bread[2][i-1][:] = spectral.scv(data[s2start1:s2end1], fs,nperseg=int(fs),noverlap=noverlap,outlierpct=5.)[1]
+            
             #RecoveryEyesClosed
-            s2start2 = getStart(tf2, 3)
-            s2end2 = getEnd(tf2, 4)
-            s2SP2 = getSP(data, s2start2, s2end2, fs, nperseg, noverlap)
-            bread[3][i-1][:] = scv.scv(s2SP2)
+            s2start2 = int(getStart(tf2, 3)*fs)
+            s2end2 = int(getEnd(tf2, 4)*fs)
+            #s2SP2 = getSP(data, s2start2, s2end2, fs, nperseg, noverlap)
+            bread[3][i-1][:] = spectral.scv(data[s2start2:s2end2], fs,nperseg=int(fs),noverlap=noverlap,outlierpct=5.)[1]
+    return bread
 
 def session3(bread, data_path, chan, fs, nperseg, noverlap):
     """
@@ -382,7 +394,8 @@ def session3(bread, data_path, chan, fs, nperseg, noverlap):
         #grabbing TimeFile from session 3 to set the indices for each condition
         tf3 = getTimeFile(data_path, 3)    
         # RecoveryEyesOpened
-        s3start = getStart(tf3, 0)
-        s3end = getEnd(tf3, 1)
-        s3SP = getSP(data, s3start, s3end, fs, nperseg, noverlap)
-        bread[4][i-1][:] = scv.scv(s3SP)
+        s3start = int(getStart(tf3, 0)*fs)
+        s3end = int(getEnd(tf3, 1)*fs)
+        #s3SP = getSP(data, s3start, s3end, fs, nperseg, noverlap)
+        bread[4][i-1][:] = spectral.scv(data[s3start:s3end], fs,nperseg=int(fs),noverlap=noverlap,outlierpct=5.)[1]
+    return bread
