@@ -26,14 +26,16 @@ def get_ECoG(data_path, session, chan, indices = [0,0]):
         timefile : file
             return information about the session
     '''
-    data_path = data_path % (session)
-    if "Session" not in data_path:
-        raise DataError("check data!")
     
-    timefile = io.loadmat(data_path + 'Condition.mat', squeeze_me=True)
+    if '%' in data_path:
+        data_path = data_path % (session)
+        timefile = io.loadmat(data_path + 'Condition.mat', squeeze_me=True)
+        if "Session" not in data_path:
+            raise DataError("check data!")
+    
 
     data_block = []
-    
+   
     for c in chan:
         try:
             matfile = io.loadmat(data_path + 'ECoG_ch%d.mat'%(c),
@@ -50,7 +52,7 @@ def get_ECoG(data_path, session, chan, indices = [0,0]):
     
     data_block = np.vstack(data_block)
 
-    return data_block, timefile
+    return data_block
 
 def get_cond(timefile, start_ind, end_ind):
     ''' grabs indices
@@ -69,6 +71,11 @@ def get_cond(timefile, start_ind, end_ind):
         indices : list
             return the start and end of the data of specific condition
     '''
+    if '%' in data_path:
+        data_path = data_path % (session)
+        timefile = io.loadmat(data_path + 'Condition.mat', squeeze_me=True)
+        if "Session" not in data_path:
+            raise DataError("check data!")
     start = timefile['ConditionTime'][start_ind]
     end = timefile['ConditionTime'][end_ind]
     indices = [start, end]
