@@ -5,8 +5,8 @@ def white_noise(t, mu=0, sigma=1):
 
 def conv_color_noise(t, kernel, mu=0, sigma=1):
 	# convolved (filtered) white noise
-	x = np.random.normal(loc=mu, scale=sigma, size=(len(t)))
-	return np.convolve(x,kernel,mode='same')
+	x = np.random.normal(loc=mu, scale=sigma, size=(len(t)+len(kernel)))
+	return np.convolve(x,kernel,mode='same')[:len(t)]
 
 def OU_process(t, theta=1., mu=0., sigma=5.):
 	# discretized Ornstein-Uhlenbeck process: 
