@@ -1,5 +1,4 @@
 import numpy as np
-import scipy as sp
 
 def white_noise(t, mu=0, sigma=1):
 	return np.random.normal(loc=mu, scale=sigma, size=(len(t)))
@@ -26,7 +25,7 @@ def OU_process(t, theta=1., mu=0., sigma=5.):
 	Ws[0]=0.
 	return x0*ex+mu*(1.-ex)+sigma*ex*np.cumsum(np.exp(theta*t)*np.sqrt(dt)*Ws)
 
-def noise_sim(t, num_trials = 10, color='white', params=None):
+def sim_noise(t, num_trials = 10, color='white', params=None):
 	"""
 	Simulates many trials of white noise, colored noise (filtered white), 
 	or an Ornstein-Uhlenbeck process, with the specified parameters.
