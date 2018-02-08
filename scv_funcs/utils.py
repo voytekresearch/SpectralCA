@@ -15,7 +15,7 @@ import neurodsp as ndsp
 
 # def grid_fit(f_axis, data, min_len=5, max_len=50, fit_constrain=(None,None), model='ols'):
 # 	"""
-# 	Moving window linear fitting of PSD, SCV, 
+# 	Moving window linear fitting of PSD, SCV,
 # 	"""
 
 # def rolling_linfit():
@@ -35,7 +35,7 @@ def inst_pwcf(data, fs, frange, n_cycles=3, winLen=1, stepLen=1, logpower=False)
         sampling frequency
 
     frange : (low, high) Hz
-        frequency range of bandpassed oscillation        
+        frequency range of bandpassed oscillation
 
     n_cycles : int
         number of cycles of the FIR filter to use
@@ -59,7 +59,7 @@ def inst_pwcf(data, fs, frange, n_cycles=3, winLen=1, stepLen=1, logpower=False)
 
     cf: array
         center frequency over time
-	
+
 	scv: array
 		spectral CV over time (windowed std/mean of power), [] if winLen ==1
 
@@ -71,7 +71,7 @@ def inst_pwcf(data, fs, frange, n_cycles=3, winLen=1, stepLen=1, logpower=False)
     if o_msg:
         print('Filtering...')
 
-    filtered = ndsp.filter(data, Fs=fs, pass_type='bandpass', 
+    filtered = ndsp.filter(data, Fs=fs, pass_type='bandpass',
     	f_lo=frange[0], f_hi=frange[1], N_cycles=n_cycles, remove_edge_artifacts=False)
 
     if o_msg:
@@ -85,7 +85,7 @@ def inst_pwcf(data, fs, frange, n_cycles=3, winLen=1, stepLen=1, logpower=False)
 
     IF = np.diff(np.unwrap(np.angle(HT))) * fs / (
         2 * np.pi)  # calculate instantaneous frequency
-    
+
     # moving average & std to compute power, center freq, scv, and bandwidth
     if winLen == 1:
         # window size=1, no smoothing
