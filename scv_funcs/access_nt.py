@@ -1,12 +1,10 @@
 import numpy as np
-import scipy as sp
 import scipy.io as io
-import scipy.signal as sig
-from neurodsp import spectral
+
 
 def get_ECoG(data_path, session, chan, indices = [0,0]):
-    ''' grabs certain chunks of data 
-    
+    ''' grabs certain chunks of data
+
         Parameters
         ----------
         data_path : String
@@ -18,7 +16,7 @@ def get_ECoG(data_path, session, chan, indices = [0,0]):
         indices : list
             specify start and end for each session
             initialized as whole if none is given
-            
+
         Returns
         -------
         data : 2d array
@@ -32,10 +30,10 @@ def get_ECoG(data_path, session, chan, indices = [0,0]):
         timefile = io.loadmat(data_path + 'Condition.mat', squeeze_me=True)
         if "Session" not in data_path:
             raise DataError("check data!")
-    
+
 
     data_block = []
-   
+
     for c in chan:
         try:
             matfile = io.loadmat(data_path + 'ECoG_ch%d.mat'%(c),
@@ -49,14 +47,14 @@ def get_ECoG(data_path, session, chan, indices = [0,0]):
             data = np.empty((len(indices)-1,))
             data[:] = np.nan
             data_block.append(data)
-    
+
     data_block = np.vstack(data_block)
 
     return data_block
 
 def get_cond(timefile, start_ind, end_ind):
     ''' grabs indices
-       
+
         Parameters
         ----------
         timefile : file
@@ -65,7 +63,7 @@ def get_cond(timefile, start_ind, end_ind):
             specific condition start
         end_ind : int
             specific condition end
-           
+
         Returns
         -------
         indices : list
@@ -79,7 +77,5 @@ def get_cond(timefile, start_ind, end_ind):
     start = timefile['ConditionTime'][start_ind]
     end = timefile['ConditionTime'][end_ind]
     indices = [start, end]
-    
+
     return indices
-
-
