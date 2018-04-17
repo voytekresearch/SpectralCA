@@ -1,26 +1,43 @@
 import numpy as np
-#import neurodsp as ndsp
+import scipy as sp
 import matplotlib.pyplot as plt
 from scipy.stats import expon
-import scipy as sp
 
 # object that has attributes for taking any segment/ time-series data
 class LFPCA:
+    """ Analysis object for time-frequency decomposition of time-series data.
+    Attributes:
+        data : array, 2D (chan x time)
+            Time-series data to be decomposed
+        fs : float, Hz
+            Sampling frequency of input data
+        analysis_params: dict
+            'nperseg' : number of samples per segment for STFT computation
+            'noverlap' : number of samples overlapping in STFT moving window
+            'spg_outlierpct' : percent of windows to consider as outliers
+            'max_freq' : maximum frequency to keep, None to keep all
+    """
 
-    # segment also include attributes of fs, nperseg, and noverlap
-    def __init__(self,data,fs,nperseg,noverlap=0,spg_outlierpct=0, max_freq=None):
-        # data has to be 2D array, chan x time
+    def __init__(self,data,fs,analysis_params):
+        """
+        Initialize LFPCA object and populate data and analysis parameters.
+        """
+        # data has to be 2D (or 1D) array, chan x time
         self.data = data
         self.numchan, self.datalen = data.shape
         self.fs = fs
-        self.nperseg = nperseg
-        self.noverlap = noverlap
-        self.spg_outlierpct = spg_outlierpct
-        self.max_freq = max_freq
 
+        # parse analysis parameters
+        self.nperseg = analysis_params['nperseg']
+        self.noverlap = analysis_params['noverlap']
+        self.spg_outlierpct = analysis_params['spg_outlierpct']
+        self.max_freq = analysis_params['max_freq']
 
-    # calculate the spg of a given channel
+    # calculate the spectrogram
     def compute_spg(self):
+        """
+        Compute spectrogram of time-series data.
+        """
         self.f_axis,self.t_axis,self.spg = sp.signal.spectrogram(self.data,fs=self.fs,nperseg=self.nperseg,noverlap=self.noverlap)
         if self.max_freq is not None:
             freq_inds = np.where(self.f_axis<self.max_freq)[0]
@@ -29,10 +46,18 @@ class LFPCA:
 
     # calculate the psd
     def compute_psd(self):
+        """
+        Compute the power spectral density using Welch's method
+        (mean over spectrogram)
+        """
         self.psd = np.mean(self.spg,axis=-1)
 
     # calculate the spectral coefficient of variation
     def compute_scv(self):
+        """
+        Compute the spectral coefficient of variation (SCV) by taking standard
+        deviation over the mean.
+        """
         if self.spg_outlierpct>0.:
             scv_ = np.zeros((self.numchan, len(self.f_axis)))
             spg_ = self.spg
@@ -45,24 +70,24 @@ class LFPCA:
         else:
             self.scv = np.std(self.spg, axis=-1) / np.mean(self.spg, axis=-1)
 
-    # calculate exponential scaling parameter
-    def exp_scale(self,freq):
-        scale = sp.stats.expon.fit(self.spg[freq],floc=0)
-        return scale
-
-    # plotting histogram for a specific channel and frequency and fitting an exp pdf over it
-    def plot_expfit(self,chan,freq_ind,num_bins=100):
-        spg_slice = self.spg[chan,freq_ind,:]
-        fig, ax = plt.subplots(1, 1)
-        n, x, _ = ax.hist(spg_slice,normed=True,bins=num_bins)
-        rv = expon(scale=sp.stats.expon.fit(spg_slice,floc=0)[1])
-        ax.plot(x, rv.pdf(x), 'k-', lw=2, label='Frozen PDF')
-        plt.legend()
-        plt.title('Frequency=%.1f Hz' %self.f_axis[freq_ind])
+    # utility so I don't have to write the same 3 lines of code always.
+    def compute_all_spectral(self):
+        """
+        Compute all spectral representations.
+        """
+        self.compute_spg()
+        self.compute_psd()
+        self.compute_scv()
 
     # fit spectrogram slices against exponential distribution and
     # calculate KS-test statistics and p-values
     def compute_KS_expfit(self):
+        """
+        Compare a given power histogram (per channel & frequency) to the exponential
+        null hypothesis using the Kolmogorov-Smirnoff test.
+
+        Return the computed exponential scale value and test statistics.
+        """
         exp_scale = np.zeros_like(self.psd)
         ks_pvals = np.zeros_like(self.psd)
         ks_stats = np.zeros_like(self.psd)
@@ -74,3 +99,17 @@ class LFPCA:
         self.exp_scale = exp_scale
         self.ks_pvals = ks_pvals
         self.ks_stats = ks_stats
+
+    # -------- plotting utilities ------------
+    # plotting histogram for a specific channel and frequency and fitting an exp pdf over it
+    def plot_expfit(self,chan,freq_ind,num_bins=100):
+        """
+        Plot the histogram of a single frequency, at a single channel.
+        """
+        spg_slice = self.spg[chan,freq_ind,:]
+        fig, ax = plt.subplots(1, 1)
+        n, x, _ = ax.hist(spg_slice,normed=True,bins=num_bins)
+        rv = expon(scale=sp.stats.expon.fit(spg_slice,floc=0)[1])
+        ax.plot(x, rv.pdf(x), 'k-', lw=2, label='Fit PDF')
+        plt.legend()
+        plt.title('Frequency=%.1f Hz' %self.f_axis[freq_ind])
