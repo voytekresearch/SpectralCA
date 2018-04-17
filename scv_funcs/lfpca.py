@@ -18,20 +18,48 @@ class LFPCA:
             'max_freq' : maximum frequency to keep, None to keep all
     """
 
-    def __init__(self,data,fs,analysis_params):
+    def __init__(self, analysis_params):
         """
         Initialize LFPCA object and populate data and analysis parameters.
         """
-        # data has to be 2D (or 1D) array, chan x time
-        self.data = data
-        self.numchan, self.datalen = data.shape
-        self.fs = fs
-
         # parse analysis parameters
         self.nperseg = analysis_params['nperseg']
         self.noverlap = analysis_params['noverlap']
         self.spg_outlierpct = analysis_params['spg_outlierpct']
         self.max_freq = analysis_params['max_freq']
+
+    def populate_ts_data(self,data,fs):
+        """
+        Populate object with time-series data.
+        Data must be 2D (or 1D) array, chan x time
+        """
+        self.data = data
+        self.numchan, self.datalen = data.shape
+        self.fs = fs
+
+    def populate_fourier_data(self,data,fs,f_axis,t_axis=None):
+        """
+        Populate object with Fourier data.
+        3D array of time-frequency data (such as spectrogram), where data is of
+        dimension [chan x frequency x time].
+
+        For trialed Fourier data, time can be single-trial, in which case t_axis
+        would correspond to trial indices.
+
+        Populating with Fourier data automatically computes PSD and SCV.
+        """
+        numchan, numfreq, numtrials = data.shape
+        self.data = []
+        self.f_axis = f_axis
+        self.spg = data
+        self.numchan = numchan
+        if t_axis is None:
+            self.t_axis = range(numtrials)
+        else:
+            self.t_axis = t_axis
+
+        self.psd()
+        self.scv()
 
     # calculate the spectrogram
     def compute_spg(self):
@@ -107,9 +135,19 @@ class LFPCA:
         Plot the histogram of a single frequency, at a single channel.
         """
         spg_slice = self.spg[chan,freq_ind,:]
-        fig, ax = plt.subplots(1, 1)
-        n, x, _ = ax.hist(spg_slice,normed=True,bins=num_bins)
+#        fig, ax = plt.subplots(1, 1)
+        n, x, _ = plt.hist(spg_slice,normed=True,bins=num_bins)
         rv = expon(scale=sp.stats.expon.fit(spg_slice,floc=0)[1])
-        ax.plot(x, rv.pdf(x), 'k-', lw=2, label='Fit PDF')
+        plt.plot(x, rv.pdf(x), 'k-', lw=2, label='Fit PDF')
         plt.legend()
+        plt.xlabel('Spectral Power')
+        plt.ylabel('Probability')
         plt.title('Frequency=%.1f Hz' %self.f_axis[freq_ind])
+
+        # spg_slice = self.spg[chan,freq_ind,:]
+        # fig, ax = plt.subplots(1, 1)
+        # n, x, _ = ax.hist(spg_slice,normed=True,bins=num_bins)
+        # rv = expon(scale=sp.stats.expon.fit(spg_slice,floc=0)[1])
+        # ax.plot(x, rv.pdf(x), 'k-', lw=2, label='Fit PDF')
+        # plt.legend()
+        # plt.title('Frequency=%.1f Hz' %self.f_axis[freq_ind])
