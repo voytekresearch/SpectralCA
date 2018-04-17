@@ -52,13 +52,15 @@ def get_ECoG(data_path, session, chan, indices = [0,0]):
 
     return data_block
 
-def get_cond(timefile, start_ind, end_ind):
+def get_cond(data_path, session, start_ind, end_ind):
     ''' grabs indices
 
         Parameters
         ----------
-        timefile : file
-            get information about the session
+        data_path : String
+            set the path
+        session : integer
+            grab the particular session
         start_ind : int
             specific condition start
         end_ind : int
@@ -69,13 +71,9 @@ def get_cond(timefile, start_ind, end_ind):
         indices : list
             return the start and end of the data of specific condition
     '''
-    if '%' in data_path:
-        data_path = data_path % (session)
-        timefile = io.loadmat(data_path + 'Condition.mat', squeeze_me=True)
-        if "Session" not in data_path:
-            raise DataError("check data!")
-    start = timefile['ConditionTime'][start_ind]
-    end = timefile['ConditionTime'][end_ind]
-    indices = [start, end]
-
-    return indices
+    if "Session" not in data_path:
+        raise DataError("check data!")
+    data_path = data_path % (session)
+    timefile = io.loadmat(data_path + 'Condition.mat', squeeze_me=True)
+    
+    return [timefile["ConditionIndex"][start_ind], timefile["ConditionIndex"][end_ind]]
