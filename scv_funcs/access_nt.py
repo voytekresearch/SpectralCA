@@ -24,7 +24,7 @@ def get_ECoG(data_path, session, chan, indices = [0,0]):
         timefile : file
             return information about the session
     '''
-    
+
     if '%' in data_path:
         data_path = data_path % (session)
         timefile = io.loadmat(data_path + 'Condition.mat', squeeze_me=True)
@@ -75,5 +75,5 @@ def get_cond(data_path, session, start_ind, end_ind):
         raise DataError("check data!")
     data_path = data_path % (session)
     timefile = io.loadmat(data_path + 'Condition.mat', squeeze_me=True)
-    
+
     return [timefile["ConditionIndex"][start_ind], timefile["ConditionIndex"][end_ind]]

@@ -144,10 +144,27 @@ class LFPCA:
         plt.ylabel('Probability')
         plt.title('Frequency=%.1f Hz' %self.f_axis[freq_ind])
 
-        # spg_slice = self.spg[chan,freq_ind,:]
-        # fig, ax = plt.subplots(1, 1)
-        # n, x, _ = ax.hist(spg_slice,normed=True,bins=num_bins)
-        # rv = expon(scale=sp.stats.expon.fit(spg_slice,floc=0)[1])
-        # ax.plot(x, rv.pdf(x), 'k-', lw=2, label='Fit PDF')
-        # plt.legend()
-        # plt.title('Frequency=%.1f Hz' %self.f_axis[freq_ind])
+    def plot_spectral(self, plot_mean=True, plot_chan=None):
+        if plot_chan is None:
+            plot_chan = np.arange(0,self.numchan)
+        titles = ['PSD', 'SCV', 'KS P-Val', 'KS Stats']
+        plot_keys = ['psd', 'scv', 'ks_pvals', 'ks_stats']
+        plot_markers = ['k-','k-','k.','k-']
+        for i in range(4):
+            plt.subplot(1,4,i+1)
+            if plot_mean:
+                m, s = _return_meanstd(getattr(self, plot_keys[i]), axis=0)
+                plt.fill_between(self.f_axis, m-s, m+s, color='k', alpha=0.5)
+                plt.loglog(self.f_axis, m, 'k')
+            else:
+                plt.loglog(self.f_axis, getattr(self, plot_keys[i])[plot_chan,:].T, plot_markers[i], alpha=0.1)
+
+            plt.title(titles[i])
+            plt.xlim(self.f_axis[1], self.f_axis[-1])
+            plt.xlabel('Frequency (Hz)')
+
+        plt.tight_layout()
+
+
+def _return_meanstd(data, axis=0):
+    return np.mean(data,axis), np.std(data,axis)
