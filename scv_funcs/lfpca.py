@@ -58,8 +58,13 @@ class LFPCA:
         else:
             self.t_axis = t_axis
 
-        self.psd()
-        self.scv()
+        if self.max_freq is not None:
+            freq_inds = np.where(self.f_axis<self.max_freq)[0]
+            self.f_axis = self.f_axis[freq_inds]
+            self.spg = self.spg[:,freq_inds,:]
+
+        self.compute_psd()
+        self.compute_scv()
 
     # calculate the spectrogram
     def compute_spg(self):
@@ -142,7 +147,7 @@ class LFPCA:
         plt.legend()
         plt.xlabel('Spectral Power')
         plt.ylabel('Probability')
-        plt.title('Frequency=%.1f Hz' %self.f_axis[freq_ind])
+        plt.title('Frequency=%.1fHz, p=%.4f' %(self.f_axis[freq_ind],self.ks_pvals[chan,freq_ind]))
 
     def plot_spectral(self, plot_mean=True, plot_chan=None):
         if plot_chan is None:
