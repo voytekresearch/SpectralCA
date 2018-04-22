@@ -85,6 +85,27 @@ class LFPCA:
         """
         self.psd = np.mean(self.spg,axis=-1)
 
+    # def compute_percentile_psd(self, rank_freqs=(8., 12.,), pct=(25,50,75,100), sum_log_power=True):
+    #     f_ind = np.where(np.logical_and(self.f_axis>=rank_freqs[0],self.f_axis<=rank_freqs[1]))
+    #
+    #     if sum_log_power:
+    #         power_vals = np.sum(np.log10(self.spg[:,f_ind,:][0]), axis=0)
+    #     else:
+    #         power_vals = np.sum(self.spg[:,f_ind,:][0], axis=0)
+    # 
+    #     bins = np.percentile(power_vals, q=pct)
+    #     power_dgt = np.digitize(power_vals, bins, right=False)
+    #         plt.figure(figsize=(5,5))
+    #         for i in np.unique(power_dgt):
+    #             plt.loglog(f_axis,np.mean(spg[:,power_dgt==i], axis=1))
+    #
+    #         plt.fill_between(rank_frange, plt.ylim()[0], plt.ylim()[1], facecolor='k', alpha=0.1)
+    #         plt.legend(pct)
+    #         plt.xlabel('Frequency (Hz)')
+    #         plt.ylabel('Power')
+    #
+    #     return power_dgt
+
     # calculate the spectral coefficient of variation
     def compute_scv(self):
         """

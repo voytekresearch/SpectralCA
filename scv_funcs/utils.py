@@ -322,3 +322,77 @@ def corr_plot(C, labels=None, pv=None, pvThresh=0.01, cmap='RdBu', bounds=None):
     if pv is not None:
         sigInds = np.where(pv < pvThresh)
         plt.scatter(sigInds[1], sigInds[0], s=50, marker='*', c='k')
+
+
+def autocorr(data, max_lag=1000, lag_step=1):
+    """ Calculate the signal autocorrelation (lagged correlation)
+
+    Parameters
+    ----------
+    data : array 1D
+        Time series to compute autocorrelation over.
+    max_lag : int (default=1000)
+        Maximum delay to compute AC, in samples of signal.
+    lag_step : int (default=1)
+        Step size (lag advance) to move by when computing correlation.
+
+    Returns
+    -------
+    ac_timepoints : array, 1D
+        Time points (in samples) at which correlation was computed.
+    ac : array, 1D
+        Time lagged (auto)correlation.
+
+    """
+
+    ac_timepoints = np.arange(0, max_lag, lag_step)
+    ac = np.zeros(len(ac_timepoints))
+    ac[0] = np.sum((data - np.mean(data))**2)
+    for ind, lag in enumerate(ac_timepoints[1:]):
+        ac[ind + 1] = np.sum((data[:-lag] - np.mean(data[:-lag]))
+                             * (data[lag:] - np.mean(data[lag:])))
+
+    return ac_timepoints, ac / ac[0]
+
+def plot_pct_psd(spg, f_axis, rank_freqs=(8.,12.), pct=(0, 25, 50, 75), sum_log_power=True):
+    """ Compute percentile power spectra using the spectrogram, ranked by power within
+    a specific band. Essentially a different way of visualizing correlation between freqs.
+
+    Parameters
+    ----------
+    spg : array, 2-D (freq x time)
+        Spectrogram to be used for PSD computation.
+    f_axis : array, 1-D
+        Frequency axis of spectrogram.
+    rank_freqs : tuple (default=(8,12))
+        Frequency band to sum over for ranking.
+    pct : tuple (default=(0,25,50,75))
+        Left bin edges to bin the spectrogram slices.
+    sum_log_power : bool (default=True)
+        If true, sum logged power instead of raw power, to counteract 1/f effect.
+
+    Returns
+    -------
+    power_dgt : array, 1D (1 x time)
+        Bin membership of the spectrogram slices.
+
+    """
+
+    f_ind = np.where(np.logical_and(f_axis>=rank_freqs[0],f_axis<=rank_freqs[1]))
+
+    if sum_log_power:
+        power_vals = np.sum(np.log10(spg[f_ind,:][0]), axis=0)
+    else:
+        power_vals = np.sum(spg[f_ind,:][0], axis=0)
+
+    bins = np.percentile(power_vals, q=pct)
+    power_dgt = np.digitize(power_vals, bins, right=False)
+    for i in np.unique(power_dgt):
+        plt.loglog(f_axis,np.mean(spg[:,power_dgt==i], axis=1))
+
+    plt.fill_between(rank_freqs, plt.ylim()[0], plt.ylim()[1], facecolor='k', alpha=0.1)
+    plt.legend(pct)
+    plt.xlabel('Frequency (Hz)')
+    plt.ylabel('Power')
+
+    return power_dgt
