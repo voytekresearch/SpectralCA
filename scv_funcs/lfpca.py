@@ -155,23 +155,17 @@ class LFPCA:
         self.ks_stats = ks_stats
 
     def save_spec_vars(self, npz_filename):
+        """ Save the spectral attributes to a .npz file.
+
+        Parameters
+        ----------
+        npz_filename : str
+            Filename of .npz file.
+
+        """
         param_keys = ['nperseg', 'noverlap','spg_outlierpct', 'max_freq']
         param_vals = [getattr(self, a) for a in param_keys]
         np.savez(npz_filename,
-         f_axis=self.f_axis,
-         psd=self.psd,
-         scv=self.scv,
-         ks_pvals=self.ks_pvals,
-         ks_stats=self.ks_stats,
-         exp_scale=self.exp_scale,
-         param_keys=param_keys,
-         param_vals=param_vals
-        )
-
-    def load_spec_vars(self, npz_filename):
-        param_keys = ['nperseg', 'noverlap','spg_outlierpct', 'max_freq']
-        param_vals = [getattr(self, a) for a in param_keys]
-        np.savez(filename,
          f_axis=self.f_axis,
          psd=self.psd,
          scv=self.scv,
@@ -219,6 +213,28 @@ class LFPCA:
 
         plt.tight_layout()
 
+def lfpca_load_spec(npz_filename):
+    """ Load an .npz file to populate the computed spectral fields of lfpca
+
+    Parameters
+    ----------
+    npz_filename : str
+        Filename of .npz file
+
+    Returns
+    -------
+    lfpca_obj
+        Populated LFPCA object.
+
+    """
+    data = np.load(npz_filename)
+    analysis_params = dict(zip(data['param_keys'], data['param_vals']))
+    data_fields = ['f_axis', 'psd', 'scv', 'ks_pvals', 'ks_stats', 'exp_scale']
+    lfpca_obj = lfpca.LFPCA(analysis_params)
+    for df in data_fields:
+        setattr(lfpca_obj, df, data[df])
+    lfpca_obj.numchan = lfpca_obj.psd.shape[0]
+    return lfpca_obj
 
 def _return_meanstd(data, axis=0):
     return np.mean(data,axis), np.std(data,axis)

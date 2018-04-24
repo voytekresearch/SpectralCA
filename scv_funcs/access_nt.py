@@ -43,13 +43,12 @@ def get_ECoG(data_path, session, chan, indices = [0,0]):
                 indices = [0,len(data)]
             data_block.append(data[indices[0]:indices[1]])
         except Exception as e:
+            # data is broken for whatever reason
+            # this is really not the best solution but we're going to fill it
+            # with a channel of white noise
             print('Handling run-time error:', e)
-            print('Channel %i is filled in with noise.'%c)
-            #data = np.empty((len(indices)-1,))
-            #data[:] = np.nan
-            #data_block.append(data)
-            data_block.append(np.random.randn(len(data_block[0])))
-            #print([np.shape(d) for d in data_block])
+            print('Channel %i is filled in with white noise.'%c)
+            data_block.append(np.random.randn(len(data_block[0])))            
 
     data_block = np.vstack(data_block)
 
