@@ -92,7 +92,7 @@ class LFPCA:
     #         power_vals = np.sum(np.log10(self.spg[:,f_ind,:][0]), axis=0)
     #     else:
     #         power_vals = np.sum(self.spg[:,f_ind,:][0], axis=0)
-    # 
+    #
     #     bins = np.percentile(power_vals, q=pct)
     #     power_dgt = np.digitize(power_vals, bins, right=False)
     #         plt.figure(figsize=(5,5))
@@ -153,6 +153,34 @@ class LFPCA:
         self.exp_scale = exp_scale
         self.ks_pvals = ks_pvals
         self.ks_stats = ks_stats
+
+    def save_spec_vars(self, npz_filename):
+        param_keys = ['nperseg', 'noverlap','spg_outlierpct', 'max_freq']
+        param_vals = [getattr(self, a) for a in param_keys]
+        np.savez(npz_filename,
+         f_axis=self.f_axis,
+         psd=self.psd,
+         scv=self.scv,
+         ks_pvals=self.ks_pvals,
+         ks_stats=self.ks_stats,
+         exp_scale=self.exp_scale,
+         param_keys=param_keys,
+         param_vals=param_vals
+        )
+
+    def load_spec_vars(self, npz_filename):
+        param_keys = ['nperseg', 'noverlap','spg_outlierpct', 'max_freq']
+        param_vals = [getattr(self, a) for a in param_keys]
+        np.savez(filename,
+         f_axis=self.f_axis,
+         psd=self.psd,
+         scv=self.scv,
+         ks_pvals=self.ks_pvals,
+         ks_stats=self.ks_stats,
+         exp_scale=self.exp_scale,
+         param_keys=param_keys,
+         param_vals=param_vals
+        )
 
     # -------- plotting utilities ------------
     # plotting histogram for a specific channel and frequency and fitting an exp pdf over it

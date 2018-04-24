@@ -44,9 +44,12 @@ def get_ECoG(data_path, session, chan, indices = [0,0]):
             data_block.append(data[indices[0]:indices[1]])
         except Exception as e:
             print('Handling run-time error:', e)
-            data = np.empty((len(indices)-1,))
-            data[:] = np.nan
-            data_block.append(data)
+            print('Channel %i is filled in with noise.'%c)
+            #data = np.empty((len(indices)-1,))
+            #data[:] = np.nan
+            #data_block.append(data)
+            data_block.append(np.random.randn(len(data_block[0])))
+            #print([np.shape(d) for d in data_block])
 
     data_block = np.vstack(data_block)
 
@@ -75,5 +78,6 @@ def get_cond(data_path, session, start_ind, end_ind):
         raise DataError("check data!")
     data_path = data_path % (session)
     timefile = io.loadmat(data_path + 'Condition.mat', squeeze_me=True)
+    print(timefile["ConditionLabel"][start_ind], timefile["ConditionLabel"][end_ind])
 
     return [timefile["ConditionIndex"][start_ind], timefile["ConditionIndex"][end_ind]]
