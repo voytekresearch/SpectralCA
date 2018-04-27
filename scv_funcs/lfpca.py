@@ -71,7 +71,7 @@ class LFPCA:
         """
         Compute spectrogram of time-series data.
         """
-        self.f_axis,self.t_axis,self.spg = sp.signal.spectrogram(self.data,fs=self.fs,nperseg=self.nperseg,noverlap=self.noverlap)
+        self.f_axis,self.t_axis,self.spg = sp.signal.spectrogram(self.data,fs=self.fs,nperseg=int(self.nperseg),noverlap=int(self.noverlap))
         if self.max_freq is not None:
             freq_inds = np.where(self.f_axis<self.max_freq)[0]
             self.f_axis = self.f_axis[freq_inds]
