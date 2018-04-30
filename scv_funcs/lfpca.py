@@ -28,6 +28,15 @@ class LFPCA:
         self.spg_outlierpct = analysis_params['spg_outlierpct']
         self.max_freq = analysis_params['max_freq']
 
+    def return_params(self):
+        param_dict = {
+        'nperseg': self.nperseg,
+        'noverlap': self.noverlap,
+        'spg_outlierpct': self.spg_outlierpct,
+        'max_freq': self.max_freq
+        }
+        return param_dict
+
     def populate_ts_data(self,data,fs):
         """
         Populate object with time-series data.
@@ -197,7 +206,7 @@ class LFPCA:
             plot_chan = np.arange(0,self.numchan)
         titles = ['PSD', 'SCV', 'KS P-Val', 'KS Stats']
         plot_keys = ['psd', 'scv', 'ks_pvals', 'ks_stats']
-        plot_markers = ['k-','k-','k.','k-']
+        plot_markers = ['k-','k-','k-','k-']
         for i in range(4):
             plt.subplot(1,4,i+1)
             if plot_mean:
@@ -210,6 +219,7 @@ class LFPCA:
             plt.title(titles[i])
             plt.xlim(self.f_axis[1], self.f_axis[-1])
             plt.xlabel('Frequency (Hz)')
+            if i is 1: plt.ylim([0.5,5.]) # limit y-axis for scv
 
         plt.tight_layout()
 
@@ -230,7 +240,7 @@ def lfpca_load_spec(npz_filename):
     data = np.load(npz_filename)
     analysis_params = dict(zip(data['param_keys'], data['param_vals']))
     data_fields = ['f_axis', 'psd', 'scv', 'ks_pvals', 'ks_stats', 'exp_scale']
-    lfpca_obj = lfpca.LFPCA(analysis_params)
+    lfpca_obj = LFPCA(analysis_params)
     for df in data_fields:
         setattr(lfpca_obj, df, data[df])
     lfpca_obj.numchan = lfpca_obj.psd.shape[0]
