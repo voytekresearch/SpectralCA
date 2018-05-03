@@ -3,6 +3,7 @@ import scipy as sp
 import matplotlib.pyplot as plt
 from scipy.stats import expon
 
+
 # object that has attributes for taking any segment/ time-series data
 class LFPCA:
     """ Analysis object for time-frequency decomposition of time-series data.
@@ -135,9 +136,10 @@ class LFPCA:
         ks_stats = np.zeros_like(self.psd)
         for chan in range(self.numchan):
             for freq in range(len(self.f_axis)):
-                param = sp.stats.expon.fit(self.spg[chan,freq,:],floc=0)
-                exp_scale[chan,freq] = param[1]
-                ks_stats[chan,freq], ks_pvals[chan,freq] = sp.stats.kstest(self.spg[chan,freq,:], 'expon', args=param)
+                exp_scale[chan,freq],ks_stats[chan,freq],ks_pvals[chan,freq]=fit_test_exp(self.spg[chan,freq,:],floc=0)
+                # param = sp.stats.expon.fit(self.spg[chan,freq,:],floc=0)
+                # exp_scale[chan,freq] = param[1]
+                # ks_stats[chan,freq], ks_pvals[chan,freq] = sp.stats.kstest(self.spg[chan,freq,:], 'expon', args=param)
         self.exp_scale = exp_scale
         self.ks_pvals = ks_pvals
         self.ks_stats = ks_stats
@@ -242,6 +244,12 @@ def lfpca_load_spec(npz_filename):
         setattr(lfpca_obj, df, data[df])
     lfpca_obj.numchan = lfpca_obj.psd.shape[0]
     return lfpca_obj
+
+def fit_test_exp(data, floc=0):
+    param = sp.stats.expon.fit(data,floc=floc)
+    exp_scale = param[1]
+    ks_stat, ks_pval = sp.stats.kstest(data, 'expon', args=param)
+    return exp_scale, ks_stat, ks_pval
 
 def _return_meanstd(data, axis=0):
     return np.mean(data,axis), np.std(data,axis)
