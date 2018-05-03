@@ -94,27 +94,6 @@ class LFPCA:
         """
         self.psd = np.mean(self.spg,axis=-1)
 
-    # def compute_percentile_psd(self, rank_freqs=(8., 12.,), pct=(25,50,75,100), sum_log_power=True):
-    #     f_ind = np.where(np.logical_and(self.f_axis>=rank_freqs[0],self.f_axis<=rank_freqs[1]))
-    #
-    #     if sum_log_power:
-    #         power_vals = np.sum(np.log10(self.spg[:,f_ind,:][0]), axis=0)
-    #     else:
-    #         power_vals = np.sum(self.spg[:,f_ind,:][0], axis=0)
-    #
-    #     bins = np.percentile(power_vals, q=pct)
-    #     power_dgt = np.digitize(power_vals, bins, right=False)
-    #         plt.figure(figsize=(5,5))
-    #         for i in np.unique(power_dgt):
-    #             plt.loglog(f_axis,np.mean(spg[:,power_dgt==i], axis=1))
-    #
-    #         plt.fill_between(rank_frange, plt.ylim()[0], plt.ylim()[1], facecolor='k', alpha=0.1)
-    #         plt.legend(pct)
-    #         plt.xlabel('Frequency (Hz)')
-    #         plt.ylabel('Power')
-    #
-    #     return power_dgt
-
     # calculate the spectral coefficient of variation
     def compute_scv(self):
         """
@@ -163,27 +142,41 @@ class LFPCA:
         self.ks_pvals = ks_pvals
         self.ks_stats = ks_stats
 
-    def save_spec_vars(self, npz_filename):
+    def save_spec_vars(self, npz_filename, save_spg=False):
         """ Save the spectral attributes to a .npz file.
 
         Parameters
         ----------
         npz_filename : str
             Filename of .npz file.
-
+        save_spg: bool (default=False)
+            Whether to save all spectrogram.
         """
         param_keys = ['nperseg', 'noverlap','spg_outlierpct', 'max_freq']
         param_vals = [getattr(self, a) for a in param_keys]
-        np.savez(npz_filename,
-         f_axis=self.f_axis,
-         psd=self.psd,
-         scv=self.scv,
-         ks_pvals=self.ks_pvals,
-         ks_stats=self.ks_stats,
-         exp_scale=self.exp_scale,
-         param_keys=param_keys,
-         param_vals=param_vals
-        )
+        if save_spg:
+            np.savez(npz_filename,
+             f_axis=self.f_axis,
+             psd=self.psd,
+             scv=self.scv,
+             ks_pvals=self.ks_pvals,
+             ks_stats=self.ks_stats,
+             exp_scale=self.exp_scale,
+             spg = self.spg,
+             param_keys=param_keys,
+             param_vals=param_vals
+            )
+        else:
+            np.savez(npz_filename,
+             f_axis=self.f_axis,
+             psd=self.psd,
+             scv=self.scv,
+             ks_pvals=self.ks_pvals,
+             ks_stats=self.ks_stats,
+             exp_scale=self.exp_scale,
+             param_keys=param_keys,
+             param_vals=param_vals
+            )
 
     # -------- plotting utilities ------------
     # plotting histogram for a specific channel and frequency and fitting an exp pdf over it
@@ -201,25 +194,26 @@ class LFPCA:
         plt.ylabel('Probability')
         plt.title('Frequency=%.1fHz, p=%.4f' %(self.f_axis[freq_ind],self.ks_pvals[chan,freq_ind]))
 
-    def plot_spectral(self, plot_mean=True, plot_chan=None):
+    def plot_spectral(self, plot_mean=True, plot_chan=None, plot_color='k'):
         if plot_chan is None:
             plot_chan = np.arange(0,self.numchan)
         titles = ['PSD', 'SCV', 'KS P-Val', 'KS Stats']
         plot_keys = ['psd', 'scv', 'ks_pvals', 'ks_stats']
-        plot_markers = ['k-','k-','k-','k-']
         for i in range(4):
             plt.subplot(1,4,i+1)
             if plot_mean:
                 m, s = _return_meanstd(getattr(self, plot_keys[i]), axis=0)
-                plt.fill_between(self.f_axis, m-s, m+s, color='k', alpha=0.5)
-                plt.loglog(self.f_axis, m, 'k')
+                plt.fill_between(self.f_axis, m-s, m+s, color=plot_color, alpha=0.5)
+                plt.loglog(self.f_axis, m, plot_color)
             else:
-                plt.loglog(self.f_axis, getattr(self, plot_keys[i])[plot_chan,:].T, plot_markers[i], alpha=0.1)
+                plt.loglog(self.f_axis, getattr(self, plot_keys[i])[plot_chan,:].T, plot_color, alpha=np.max([0.1, 0.75-(np.size(plot_chan)-1)/10]))
 
             plt.title(titles[i])
             plt.xlim(self.f_axis[1], self.f_axis[-1])
             plt.xlabel('Frequency (Hz)')
             if i is 1: plt.ylim([0.5,5.]) # limit y-axis for scv
+            if i is 2: plt.ylim([1e-7,1])
+
 
         plt.tight_layout()
 
@@ -240,6 +234,9 @@ def lfpca_load_spec(npz_filename):
     data = np.load(npz_filename)
     analysis_params = dict(zip(data['param_keys'], data['param_vals']))
     data_fields = ['f_axis', 'psd', 'scv', 'ks_pvals', 'ks_stats', 'exp_scale']
+    if 'spg' in data.keys():
+        # if spectrogram was saved, load as well
+        data_fields.append('spg')
     lfpca_obj = LFPCA(analysis_params)
     for df in data_fields:
         setattr(lfpca_obj, df, data[df])
