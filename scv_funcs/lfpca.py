@@ -2,6 +2,8 @@ import numpy as np
 import scipy as sp
 import matplotlib.pyplot as plt
 from scipy.stats import expon
+import neurodsp as ndsp
+from . import utils
 
 
 # object that has attributes for taking any segment/ time-series data
@@ -250,6 +252,34 @@ def fit_test_exp(data, floc=0):
     exp_scale = param[1]
     ks_stat, ks_pval = sp.stats.kstest(data, 'expon', args=param)
     return exp_scale, ks_stat, ks_pval
+
+def compute_BP_HT(data, fs, passband, N_cycles=5, ac_thr=0.05):
+    # bandpass filter data
+    if passband[0]<=0.:
+        # passband starts from 0Hz, lowpass
+        data_filt, filt_ker = ndsp.filter(data,fs,'lowpass',f_lo=passband[1],N_cycles=N_cycles,return_kernel=True)
+    elif passband[1]<=0.:
+        # highpass
+        data_filt, filt_ker = ndsp.filter(data,fs,'highpass',f_hi=passband[0],N_cycles=N_cycles,return_kernel=True)
+    else:
+        # bandpass
+        data_filt, filt_ker = ndsp.filter(data,fs,'bandpass',f_lo=passband[0],f_hi=passband[1],N_cycles=N_cycles,return_kernel=True)
+
+    # get effective filter length where autocorrelation drops below the threshold for the last time
+    ker_len = np.where(np.abs(utils.autocorr(filt_ker)[1])>=ac_thr)[0][-1]+1
+
+    # get Hilbert transform
+    HT = sp.signal.hilbert(data_filt[~np.isnan(data_filt)])
+
+    # amplitude, pad filter edge artifacts with zero
+    sig_power = np.ones_like(data)*np.nan
+    sig_phase = np.ones_like(data)*np.nan
+    sig_power[~np.isnan(data_filt)] = np.abs(HT)**2
+    sig_phase[~np.isnan(data_filt)] = np.angle(HT)
+
+    # also return data-valid indices for convenience
+    valid_inds = np.where(~np.isnan(data_filt))[0]
+    return sig_power, sig_phase, valid_inds, ker_len
 
 def _return_meanstd(data, axis=0):
     return np.mean(data,axis), np.std(data,axis)

@@ -8,18 +8,6 @@ import time
 import neurodsp as ndsp
 
 
-
-# def scv_filt(x, Fs, ):
-
-# 	ndsp.filter()
-
-# def grid_fit(f_axis, data, min_len=5, max_len=50, fit_constrain=(None,None), model='ols'):
-# 	"""
-# 	Moving window linear fitting of PSD, SCV,
-# 	"""
-
-# def rolling_linfit():
-
 def percentile_spectrogram(spg, f_axis, rank_freqs=(8.,12.), pct=(0, 25, 50, 75), sum_log_power=True, show=True):
     """ Compute percentile power spectra using the spectrogram, ranked by power within
     a specific band. Essentially a different way of visualizing correlation between freqs.
@@ -63,6 +51,36 @@ def percentile_spectrogram(spg, f_axis, rank_freqs=(8.,12.), pct=(0, 25, 50, 75)
         plt.ylabel('Power')
 
     return power_dgt, power_binned
+
+def autocorr(data, max_lag=1000, lag_step=1):
+    """ Calculate the signal autocorrelation (lagged correlation)
+
+    Parameters
+    ----------
+    data : array 1D
+        Time series to compute autocorrelation over.
+    max_lag : int (default=1000)
+        Maximum delay to compute AC, in samples of signal.
+    lag_step : int (default=1)
+        Step size (lag advance) to move by when computing correlation.
+
+    Returns
+    -------
+    ac_timepoints : array, 1D
+        Time points (in samples) at which correlation was computed.
+    ac : array, 1D
+        Time lagged (auto)correlation.
+
+    """
+
+    ac_timepoints = np.arange(0, max_lag, lag_step)
+    ac = np.zeros(len(ac_timepoints))
+    ac[0] = np.sum((data - np.mean(data))**2)
+    for ind, lag in enumerate(ac_timepoints[1:]):
+        ac[ind + 1] = np.sum((data[:-lag] - np.mean(data[:-lag]))
+                             * (data[lag:] - np.mean(data[lag:])))
+
+    return ac_timepoints, ac / ac[0]
 
 
 def inst_pwcf(data, fs, frange, n_cycles=3, winLen=1, stepLen=1, logpower=False):
@@ -366,35 +384,7 @@ def corr_plot(C, labels=None, pv=None, pvThresh=0.01, cmap='RdBu', bounds=None):
         plt.scatter(sigInds[1], sigInds[0], s=50, marker='*', c='k')
 
 
-def autocorr(data, max_lag=1000, lag_step=1):
-    """ Calculate the signal autocorrelation (lagged correlation)
 
-    Parameters
-    ----------
-    data : array 1D
-        Time series to compute autocorrelation over.
-    max_lag : int (default=1000)
-        Maximum delay to compute AC, in samples of signal.
-    lag_step : int (default=1)
-        Step size (lag advance) to move by when computing correlation.
-
-    Returns
-    -------
-    ac_timepoints : array, 1D
-        Time points (in samples) at which correlation was computed.
-    ac : array, 1D
-        Time lagged (auto)correlation.
-
-    """
-
-    ac_timepoints = np.arange(0, max_lag, lag_step)
-    ac = np.zeros(len(ac_timepoints))
-    ac[0] = np.sum((data - np.mean(data))**2)
-    for ind, lag in enumerate(ac_timepoints[1:]):
-        ac[ind + 1] = np.sum((data[:-lag] - np.mean(data[:-lag]))
-                             * (data[lag:] - np.mean(data[lag:])))
-
-    return ac_timepoints, ac / ac[0]
 
 # def plot_pct_psd(spg, f_axis, rank_freqs=(8.,12.), pct=(0, 25, 50, 75), sum_log_power=True):
 #     """ Compute percentile power spectra using the spectrogram, ranked by power within
