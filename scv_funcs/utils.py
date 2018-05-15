@@ -8,7 +8,7 @@ import time
 import neurodsp as ndsp
 
 
-def percentile_spectrogram(spg, f_axis, rank_freqs=(8.,12.), pct=(0, 25, 50, 75), sum_log_power=True, show=True):
+def percentile_spectrogram(spg, f_axis, rank_freqs=(8., 12.), pct=(0, 25, 50, 75), sum_log_power=True, show=True):
     """ Compute percentile power spectra using the spectrogram, ranked by power within
     a specific band. Essentially a different way of visualizing correlation between freqs.
 
@@ -33,24 +33,91 @@ def percentile_spectrogram(spg, f_axis, rank_freqs=(8.,12.), pct=(0, 25, 50, 75)
         Bin membership of the spectrogram slices.
 
     """
-    f_ind = np.where(np.logical_and(f_axis>=rank_freqs[0],f_axis<=rank_freqs[1]))
+    f_ind = np.where(np.logical_and(
+        f_axis >= rank_freqs[0], f_axis <= rank_freqs[1]))
 
     if sum_log_power:
-        power_vals = np.sum(np.log10(spg[f_ind,:][0]), axis=0)
+        power_vals = np.sum(np.log10(spg[f_ind, :][0]), axis=0)
     else:
-        power_vals = np.sum(spg[f_ind,:][0], axis=0)
+        power_vals = np.sum(spg[f_ind, :][0], axis=0)
 
     bins = np.percentile(power_vals, q=pct)
     power_dgt = np.digitize(power_vals, bins, right=False)
-    power_binned = np.asarray([np.mean(spg[:,power_dgt==i],axis=1) for i in np.unique(power_dgt)])
+    power_binned = np.asarray(
+        [np.mean(spg[:, power_dgt == i], axis=1) for i in np.unique(power_dgt)])
     if show:
-        plt.loglog(f_axis,power_binned.T)
-        plt.fill_between(rank_freqs, plt.ylim()[0], plt.ylim()[1], facecolor='k', alpha=0.1)
+        plt.loglog(f_axis, power_binned.T)
+        plt.fill_between(rank_freqs, plt.ylim()[0], plt.ylim()[
+                         1], facecolor='k', alpha=0.1)
         plt.legend(pct)
         plt.xlabel('Frequency (Hz)')
         plt.ylabel('Power')
 
     return power_dgt, power_binned
+
+
+def plot_power_examples(data, fs, t_spg, pwr_dgt, rank_freqs, N_cycles=5, n_to_plot=6, power_adj=5, std_YL=True):
+    """ Plots examples of time series that fell into the quantile-binned power
+    values at the specified frequency. Use in conjunction with percentile_spectrogram.
+
+    Parameters
+    ----------
+    data : array, 1-D
+        Time-series to be plotted.
+    fs : float, Hz
+        Sampling frequency.
+    t_spg : array, 1-D
+        Time indices of spectrogram slices.
+    pwr_dgt : array, 1-D
+        Quantile membership of spectrogram slices, same length as t_spg.
+    rank_freqs : tuple, (low, high) Hz
+        Band within which total power was ranked by, and will be filtered.
+    N_cycles : int, default=5
+        Filter order.
+    n_to_plot : int, default=6
+        Number of examples to plot per quantile.
+    power_adj : float
+        Adjustment to multiply the filter trace by for better visualization.
+        If 0, don't plot filtered data.
+    std_YL : bool, default=True
+        Standardize y-lim for each subplot for better comparison.
+
+    """
+    CKEYS = plt.rcParams['axes.prop_cycle'].by_key()['color']  # grab color rota
+    ymin, ymax = 0, 0
+    # filter data and multiplier power constant for ease of visualization
+    if power_adj:
+        data_filt = ndsp.filter(
+            data, fs, 'bandpass', f_lo=rank_freqs[0], f_hi=rank_freqs[1], N_cycles=N_cycles) * power_adj
+    plot_len = int(fs / 2)
+    t_plot = np.arange(-plot_len, plot_len) / fs
+    n_bins = len(np.unique(pwr_dgt))
+    # loop through bins
+    for j in np.unique(pwr_dgt):
+        # loop through examples
+        for i in range(n_to_plot):
+            plt.subplot(n_to_plot, n_bins, (i * n_bins) + j)
+            # grab a random window of data that fell within the current power bin
+            plot_ind = int(t_spg[np.where(pwr_dgt == j)[0]][np.random.choice(
+                len(np.where(pwr_dgt == j)[0]))] * fs)
+            y = data[plot_ind - plot_len:plot_ind + plot_len]
+            # plot
+            plt.plot(t_plot, y - y.mean(), color=CKEYS[j - 1])
+            if power_adj:
+                plt.plot(
+                    t_plot, data_filt[plot_ind - plot_len:plot_ind + plot_len], color=CKEYS[j - 1], alpha=0.5)
+            plt.xlim([t_plot[0], t_plot[-1]])
+            plt.title('Ind:%i, Quantile: %i' % (plot_ind, j))
+            ymin = min(ymin, plt.ylim()[0])
+            ymax = max(ymax, plt.ylim()[1])
+    # loop through again and reset y-axis to be the same
+    if std_YL:
+        for j in np.unique(pwr_dgt):
+            for i in range(n_to_plot):
+                plt.subplot(n_to_plot, n_bins, (i * n_bins) + j)
+                plt.ylim([ymin, ymax])
+    plt.tight_layout()
+
 
 def autocorr(data, max_lag=1000, lag_step=1):
     """ Calculate the signal autocorrelation (lagged correlation)
@@ -111,7 +178,7 @@ def inst_pwcf(data, fs, frange, n_cycles=3, winLen=1, stepLen=1, logpower=False)
         default: 1
 
     logpower : bool
-		whether to log power
+                whether to log power
 
     ----- Returns -----
     pw: array
@@ -120,8 +187,8 @@ def inst_pwcf(data, fs, frange, n_cycles=3, winLen=1, stepLen=1, logpower=False)
     cf: array
         center frequency over time
 
-	scv: array
-		spectral CV over time (windowed std/mean of power), [] if winLen ==1
+        scv: array
+                spectral CV over time (windowed std/mean of power), [] if winLen ==1
 
     bw: array
         bandwidth, defined as IQR of instantaneous freq, [] if winLen == 1
@@ -132,16 +199,16 @@ def inst_pwcf(data, fs, frange, n_cycles=3, winLen=1, stepLen=1, logpower=False)
         print('Filtering...')
 
     filtered = ndsp.filter(data, Fs=fs, pass_type='bandpass',
-    	f_lo=frange[0], f_hi=frange[1], N_cycles=n_cycles, remove_edge_artifacts=False)
+                           f_lo=frange[0], f_hi=frange[1], N_cycles=n_cycles, remove_edge_artifacts=False)
 
     if o_msg:
         print('Computing Hilbert, Power & Phase...')
     # compute signal derivatives
     HT = sp.signal.hilbert(filtered)  # calculate hilbert
     if logpower:
-    	PW = np.log10(abs(HT)**2) # instantaneous power
+        PW = np.log10(abs(HT)**2)  # instantaneous power
     else:
-    	PW = abs(HT)**2 # instantaneous power
+        PW = abs(HT)**2  # instantaneous power
 
     IF = np.diff(np.unwrap(np.angle(HT))) * fs / (
         2 * np.pi)  # calculate instantaneous frequency
@@ -164,7 +231,7 @@ def inst_pwcf(data, fs, frange, n_cycles=3, winLen=1, stepLen=1, logpower=False)
         wins = slidingWindow(PW, winLen, stepLen)
         for ind, win in enumerate(wins):
             pw[ind] = np.mean(win)
-            scv[ind] = np.std(win)/np.mean(win)
+            scv[ind] = np.std(win) / np.mean(win)
 
             # get smoothed center freq & bandwidth
         wins = slidingWindow(IF, winLen, stepLen)
@@ -370,9 +437,8 @@ def corr_plot(C, labels=None, pv=None, pvThresh=0.01, cmap='RdBu', bounds=None):
         plt.xticks(np.arange(len(labels)), labels)
         plt.yticks(np.arange(len(labels)), labels)
 
-
-    plt.xlim(-0.5, nDim-0.5)
-    plt.ylim(nDim-0.5, -0.5)
+    plt.xlim(-0.5, nDim - 0.5)
+    plt.ylim(nDim - 0.5, -0.5)
     plt.plot([-0.5, nDim - 0.5], [-0.5, nDim - 0.5], 'k-')
     plt.colorbar(fraction=0.046, pad=0.04, ticks=np.linspace(-1, 1, 5))
     plt.tick_params(length=0)
@@ -382,8 +448,6 @@ def corr_plot(C, labels=None, pv=None, pvThresh=0.01, cmap='RdBu', bounds=None):
     if pv is not None:
         sigInds = np.where(pv < pvThresh)
         plt.scatter(sigInds[1], sigInds[0], s=50, marker='*', c='k')
-
-
 
 
 # def plot_pct_psd(spg, f_axis, rank_freqs=(8.,12.), pct=(0, 25, 50, 75), sum_log_power=True):
