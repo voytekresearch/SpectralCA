@@ -184,15 +184,22 @@ class LFPCA:
 
     # -------- plotting utilities ------------
     # plotting histogram for a specific channel and frequency and fitting an exp pdf over it
-    def plot_expfit(self,chan,freq_ind,num_bins=100):
+    def plot_expfit(self,chan,freq_ind,num_bins=100,plot_cdf=False):
         """
         Plot the histogram of a single frequency, at a single channel.
         """
         spg_slice = self.spg[chan,freq_ind,:]
-#        fig, ax = plt.subplots(1, 1)
-        n, x, _ = plt.hist(spg_slice,normed=True,bins=num_bins)
         rv = expon(scale=sp.stats.expon.fit(spg_slice,floc=0)[1])
-        plt.plot(x, rv.pdf(x), 'k-', lw=2, label='Fit PDF')
+        if plot_cdf:
+            # plot CDF
+            # n,x = np.histogram(spg_slice,normed=True,bins=num_bins)
+            # plt.plot(x[:-1], np.cumsum(n), lw=2)
+            n, x, _ = plt.hist(spg_slice,bins=num_bins,density=True,cumulative=True, alpha=0.8)
+            plt.plot(x, rv.cdf(x), 'k-', lw=2, label='Fit CDF')
+        else:
+            # plot PDF
+            n, x, _ = plt.hist(spg_slice,normed=True,bins=num_bins, alpha=0.8)
+            plt.plot(x, rv.pdf(x), 'k-', lw=2, label='Fit PDF')
         plt.legend()
         plt.xlabel('Spectral Power')
         plt.ylabel('Probability')
