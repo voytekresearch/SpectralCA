@@ -255,12 +255,53 @@ def lfpca_load_spec(npz_filename):
     return lfpca_obj
 
 def fit_test_exp(data, floc=0):
+    """ Fit and KS test against exponential.
+
+    Parameters
+    ----------
+    data : type
+        Description of parameter `data`.
+    floc : type
+        Description of parameter `floc`.
+
+    Returns
+    -------
+    type
+        Description of returned object.
+
+    """
     param = sp.stats.expon.fit(data,floc=floc)
     exp_scale = param[1]
     ks_stat, ks_pval = sp.stats.kstest(data, 'expon', args=param)
     return exp_scale, ks_stat, ks_pval
 
 def compute_BP_HT(data, fs, passband, N_cycles=5, ac_thr=0.05):
+    """ Compute bandpass filtered Hilbert transforms.
+
+    Parameters
+    ----------
+    data : array, 1D
+        Time-series to be filtered.
+    fs : float, Hz
+        Sampling rate.
+    passband : tuple, (f_low, f_high)
+        Bandpass pass band, 0 if disregard.
+    N_cycles : int, default=5
+        Number of cycles of filter.
+    ac_thr : float
+        Autocorrelation threshold to determine as effective filter length.
+
+    Returns
+    -------
+    sig_power : array, 1D
+        Hilbert power.
+    sig_phase : array, 1D
+        Hilbert phase.
+    valid_inds : array, 1D
+        Valid indices of the filtered time-series (non-NaNs).
+    ker_len : int, samples
+        Effective filter length.
+    """
     # bandpass filter data
     if passband[0]<=0.:
         # passband starts from 0Hz, lowpass
@@ -274,10 +315,8 @@ def compute_BP_HT(data, fs, passband, N_cycles=5, ac_thr=0.05):
 
     # get effective filter length where autocorrelation drops below the threshold for the last time
     ker_len = np.where(np.abs(utils.autocorr(filt_ker)[1])>=ac_thr)[0][-1]+1
-
     # get Hilbert transform
     HT = sp.signal.hilbert(data_filt[~np.isnan(data_filt)])
-
     # amplitude, pad filter edge artifacts with zero
     sig_power = np.ones_like(data)*np.nan
     sig_phase = np.ones_like(data)*np.nan

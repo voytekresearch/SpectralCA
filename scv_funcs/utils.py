@@ -276,7 +276,7 @@ def yield_sliding_window_ts(data, nperseg=1000, noverlap=500):
         for ind in range(out_len):
             yield data[:, step_len * ind:nperseg + step_len * ind]
 
-def yield_sliding_window_pp(event_times, fs, win_len=1., overlap_len=0.):
+def yield_sliding_window_pp(event_times, fs, win_len=1., overlap_len=0., end_time=None):
     """ Return a generator that will iterate through a list of event times
     in a sliding window fashion, and return the event times and the absolute
     position (indices) of those event times that fell within each rolling window.
@@ -292,6 +292,10 @@ def yield_sliding_window_pp(event_times, fs, win_len=1., overlap_len=0.):
         Length of rolling window in seconds.
     overlap_len : float, seconds, default=0
         Length of rolling window overlap in seconds.
+    end_len : float, seconds, default=None
+        Maximum length, in seconds, to slide window to. Handy if trying to match
+        a timeseries.
+        If None, ends at the last event time.
 
     Returns
     -------
@@ -301,11 +305,13 @@ def yield_sliding_window_pp(event_times, fs, win_len=1., overlap_len=0.):
     # change event indices into timestamps by dividing by fs
     event_times = event_times / fs
     step_len = win_len - overlap_len
+    if end_time is None:
+        end_time = event_times[-1]
     # compute how many windows there will be
-    out_len = int(np.ceil((event_times[-1] - win_len) / step_len)) + 1
+    out_len = int(np.ceil((end_time - win_len) / step_len)) + 1
     for ind in range(out_len):
         event_inds = np.where((event_times>=ind*step_len) & (event_times< (win_len+ind*step_len)))[0]
-        yield event_times[event_inds], event_inds
+        yield event_times[event_inds], event_inds, out_len
 
 
 def binarize_spiketime(spike_times, len_binned=None, spike_rate=40000., bin_rate=1000.):
