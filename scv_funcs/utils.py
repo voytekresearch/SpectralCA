@@ -107,7 +107,8 @@ def plot_power_examples(data, fs, t_spg, pwr_dgt, rank_freqs, N_cycles=5, N_to_p
                 plt.plot(
                     t_plot, data_filt[plot_ind - plot_len:plot_ind + plot_len], color=CKEYS[j - 1], alpha=0.5)
             plt.xlim([t_plot[0], t_plot[-1]])
-            plt.title('Ind:%i, Quantile: %i' % (plot_ind, j))
+            #plt.title('Ind:%i, Quantile: %i' % (plot_ind, j))
+            plt.title('Q%i' % j)
             ymin = min(ymin, plt.ylim()[0])
             ymax = max(ymax, plt.ylim()[1])
     # loop through again and reset y-axis to be the same

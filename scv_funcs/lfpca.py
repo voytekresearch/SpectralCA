@@ -87,6 +87,20 @@ class LFPCA:
         Compute spectrogram of time-series data.
         """
         self.f_axis,self.t_axis,self.spg = sp.signal.spectrogram(self.data,fs=self.fs,nperseg=int(self.nperseg),noverlap=int(self.noverlap))
+
+        if self.spg_outlierpct>0.:
+            n_discard = int(np.ceil(len(self.t_axis) / 100. * self.spg_outlierpct))
+            n_keep = int(len(self.t_axis)-n_discard)
+            spg_ = np.zeros((self.numchan,len(self.f_axis),n_keep))
+            self.outlier_inds = np.zeros((self.numchan,n_discard))
+            for chan in range(self.numchan):
+                # discard time windows with high powers, round up so it doesn't get a zero
+                self.outlier_inds[chan,:] = np.argsort(np.mean(np.log10(self.spg[chan,:,:]), axis=0))[-n_discard:]
+                spg_[chan,:,:] = np.delete(self.spg[chan], self.outlier_inds[chan,:], axis=-1)
+            self.spg = spg_
+            self.outlier_inds=self.outlier_inds.astype(int)
+
+
         if self.max_freq is not None:
             freq_inds = np.where(self.f_axis<self.max_freq)[0]
             self.f_axis = self.f_axis[freq_inds]
@@ -106,17 +120,18 @@ class LFPCA:
         Compute the spectral coefficient of variation (SCV) by taking standard
         deviation over the mean.
         """
-        if self.spg_outlierpct>0.:
-            scv_ = np.zeros((self.numchan, len(self.f_axis)))
-            spg_ = self.spg
-            for chan in range(self.numchan):
-                # discard time windows with high powers, round up so it doesn't get a zero
-                discard = int(np.ceil(len(self.t_axis) / 100. * self.spg_outlierpct))
-                outlieridx = np.argsort(np.mean(np.log10(spg_[chan,:,:]), axis=0))[:-discard]
-                scv_[chan, :] = np.std(spg_[chan][:,outlieridx], axis=-1) / np.mean(spg_[chan][:,outlieridx], axis=-1)
-            self.scv = scv_
-        else:
-            self.scv = np.std(self.spg, axis=-1) / np.mean(self.spg, axis=-1)
+        self.scv = np.std(self.spg, axis=-1) / np.mean(self.spg, axis=-1)
+        # if self.spg_outlierpct>0.:
+        #     scv_ = np.zeros((self.numchan, len(self.f_axis)))
+        #     spg_ = self.spg
+        #     for chan in range(self.numchan):
+        #         # discard time windows with high powers, round up so it doesn't get a zero
+        #         discard = int(np.ceil(len(self.t_axis) / 100. * self.spg_outlierpct))
+        #         outlieridx = np.argsort(np.mean(np.log10(spg_[chan,:,:]), axis=0))[:-discard]
+        #         scv_[chan, :] = np.std(spg_[chan][:,outlieridx], axis=-1) / np.mean(spg_[chan][:,outlieridx], axis=-1)
+        #     self.scv = scv_
+        # else:
+        #     self.scv = np.std(self.spg, axis=-1) / np.mean(self.spg, axis=-1)
 
     # utility so I don't have to write the same 3 lines of code always.
     def compute_all_spectral(self):
