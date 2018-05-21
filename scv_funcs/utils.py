@@ -56,7 +56,7 @@ def percentile_spectrogram(spg, f_axis, rank_freqs=(8., 12.), pct=(0, 25, 50, 75
     return power_dgt, power_binned
 
 
-def plot_power_examples(data, fs, t_spg, pwr_dgt, rank_freqs, N_cycles=5, n_to_plot=6, power_adj=5, std_YL=True):
+def plot_power_examples(data, fs, t_spg, pwr_dgt, rank_freqs, N_cycles=5, N_to_plot=6, power_adj=5, std_YL=True):
     """ Plots examples of time series that fell into the quantile-binned power
     values at the specified frequency. Use in conjunction with percentile_spectrogram.
 
@@ -74,7 +74,7 @@ def plot_power_examples(data, fs, t_spg, pwr_dgt, rank_freqs, N_cycles=5, n_to_p
         Band within which total power was ranked by, and will be filtered.
     N_cycles : int, default=5
         Filter order.
-    n_to_plot : int, default=6
+    N_to_plot : int, default=6
         Number of examples to plot per quantile.
     power_adj : float
         Adjustment to multiply the filter trace by for better visualization.
@@ -95,8 +95,8 @@ def plot_power_examples(data, fs, t_spg, pwr_dgt, rank_freqs, N_cycles=5, n_to_p
     # loop through bins
     for j in np.unique(pwr_dgt):
         # loop through examples
-        for i in range(n_to_plot):
-            plt.subplot(n_to_plot, n_bins, (i * n_bins) + j)
+        for i in range(N_to_plot):
+            plt.subplot(N_to_plot, n_bins, (i * n_bins) + j)
             # grab a random window of data that fell within the current power bin
             plot_ind = int(t_spg[np.where(pwr_dgt == j)[0]][np.random.choice(
                 len(np.where(pwr_dgt == j)[0]))] * fs)
@@ -107,14 +107,15 @@ def plot_power_examples(data, fs, t_spg, pwr_dgt, rank_freqs, N_cycles=5, n_to_p
                 plt.plot(
                     t_plot, data_filt[plot_ind - plot_len:plot_ind + plot_len], color=CKEYS[j - 1], alpha=0.5)
             plt.xlim([t_plot[0], t_plot[-1]])
-            plt.title('Ind:%i, Quantile: %i' % (plot_ind, j))
+            #plt.title('Ind:%i, Quantile: %i' % (plot_ind, j))
+            plt.title('Q%i' % j)
             ymin = min(ymin, plt.ylim()[0])
             ymax = max(ymax, plt.ylim()[1])
     # loop through again and reset y-axis to be the same
     if std_YL:
         for j in np.unique(pwr_dgt):
-            for i in range(n_to_plot):
-                plt.subplot(n_to_plot, n_bins, (i * n_bins) + j)
+            for i in range(N_to_plot):
+                plt.subplot(N_to_plot, n_bins, (i * n_bins) + j)
                 plt.ylim([ymin, ymax])
     plt.tight_layout()
 
@@ -137,7 +138,6 @@ def autocorr(data, max_lag=1000, lag_step=1):
         Time points (in samples) at which correlation was computed.
     ac : array, 1D
         Time lagged (auto)correlation.
-
     """
 
     ac_timepoints = np.arange(0, max_lag, lag_step)
@@ -150,223 +150,223 @@ def autocorr(data, max_lag=1000, lag_step=1):
     return ac_timepoints, ac / ac[0]
 
 
-def inst_pwcf(data, fs, frange, n_cycles=3, winLen=1, stepLen=1, logpower=False):
+# def inst_pwcf(data, fs, frange, n_cycles=3, winLen=1, stepLen=1, logpower=False):
+#     """
+#     Computes instantaneous frequency & other metrics in a single time series
+#     ----- Args -----
+#     data : array, 1d
+#         time series to calculate center frequency, bandwidth
+#         and power for
+#
+#     fs : float, Hz
+#         sampling frequency
+#
+#     frange : (low, high) Hz
+#         frequency range of bandpassed oscillation
+#
+#     n_cycles : int
+#         number of cycles of the FIR filter to use
+#         default: 3
+#
+#     winLen : int, samples
+#         size of sliding window to compute stats
+#         if 1, return raw estimates
+#         default: 1
+#
+#     stepLen : int, samples
+#         step size to advance sliding window
+#         default: 1
+#
+#     logpower : bool
+#                 whether to log power
+#
+#     ----- Returns -----
+#     pw: array
+#         instantaneous power over time
+#
+#     cf: array
+#         center frequency over time
+#
+#         scv: array
+#                 spectral CV over time (windowed std/mean of power), [] if winLen ==1
+#
+#     bw: array
+#         bandwidth, defined as IQR of instantaneous freq, [] if winLen == 1
+#
+#     """
+#     o_msg = False
+#     if o_msg:
+#         print('Filtering...')
+#
+#     filtered = ndsp.filter(data, Fs=fs, pass_type='bandpass',
+#                            f_lo=frange[0], f_hi=frange[1], N_cycles=n_cycles, remove_edge_artifacts=False)
+#
+#     if o_msg:
+#         print('Computing Hilbert, Power & Phase...')
+#     # compute signal derivatives
+#     HT = sp.signal.hilbert(filtered)  # calculate hilbert
+#     if logpower:
+#         PW = np.log10(abs(HT)**2)  # instantaneous power
+#     else:
+#         PW = abs(HT)**2  # instantaneous power
+#
+#     IF = np.diff(np.unwrap(np.angle(HT))) * fs / (
+#         2 * np.pi)  # calculate instantaneous frequency
+#
+#     # moving average & std to compute power, center freq, scv, and bandwidth
+#     if winLen == 1:
+#         # window size=1, no smoothing
+#         return PW, IF, [], []
+#
+#     else:
+#         if o_msg:
+#             print('Smoothing...')
+#
+#         # compute output length & pre-allocate array
+#         outLen = int(np.ceil((np.shape(data)[0] - winLen) / float(
+#             stepLen))) + 1
+#         pw, cf, scv, bw = np.zeros((4, outLen))
+#
+#         # get smoothed power and coefficient of variation
+#         wins =
+#         (PW, winLen, stepLen)
+#         for ind, win in enumerate(wins):
+#             pw[ind] = np.mean(win)
+#             scv[ind] = np.std(win) / np.mean(win)
+#
+#             # get smoothed center freq & bandwidth
+#         wins = slidingWindow(IF, winLen, stepLen)
+#         for ind, win in enumerate(wins):
+#             cf[ind] = np.mean(win)  # smooth center freq
+#             bw[ind] = np.diff(np.percentile(win, q=[25, 75]), axis=0)
+#
+#         return pw, cf, scv, bw
+
+
+def yield_sliding_window_ts(data, nperseg=1000, noverlap=500):
+    """ Return a generator that will iterate through the defined lengths of 1D
+    array with window of length nperseg and step length of noverlap; if not a
+    perfect divisor, last slice gets remaining data.
+
+    Parameters
+    ----------
+    data : array, 1D or 2D
+        Time series to slide over. If 2D, must be [channel x time]
+
+    nperseg : int, samples, default=1000
+        Size of sliding window in number of samples.
+
+    noverlap : int, samples, default=500
+        Overlap size of rolling windows.
+
+    Returns
+    -------
+    Generator with slices of data
+        channel x nperseg
     """
-    Computes instantaneous frequency & other metrics in a single time series
-    ----- Args -----
-    data : array, 1d
-        time series to calculate center frequency, bandwidth
-        and power for
 
-    fs : float, Hz
-        sampling frequency
-
-    frange : (low, high) Hz
-        frequency range of bandpassed oscillation
-
-    n_cycles : int
-        number of cycles of the FIR filter to use
-        default: 3
-
-    winLen : int, samples
-        size of sliding window to compute stats
-        if 1, return raw estimates
-        default: 1
-
-    stepLen : int, samples
-        step size to advance sliding window
-        default: 1
-
-    logpower : bool
-                whether to log power
-
-    ----- Returns -----
-    pw: array
-        instantaneous power over time
-
-    cf: array
-        center frequency over time
-
-        scv: array
-                spectral CV over time (windowed std/mean of power), [] if winLen ==1
-
-    bw: array
-        bandwidth, defined as IQR of instantaneous freq, [] if winLen == 1
-
-    """
-    o_msg = False
-    if o_msg:
-        print('Filtering...')
-
-    filtered = ndsp.filter(data, Fs=fs, pass_type='bandpass',
-                           f_lo=frange[0], f_hi=frange[1], N_cycles=n_cycles, remove_edge_artifacts=False)
-
-    if o_msg:
-        print('Computing Hilbert, Power & Phase...')
-    # compute signal derivatives
-    HT = sp.signal.hilbert(filtered)  # calculate hilbert
-    if logpower:
-        PW = np.log10(abs(HT)**2)  # instantaneous power
-    else:
-        PW = abs(HT)**2  # instantaneous power
-
-    IF = np.diff(np.unwrap(np.angle(HT))) * fs / (
-        2 * np.pi)  # calculate instantaneous frequency
-
-    # moving average & std to compute power, center freq, scv, and bandwidth
-    if winLen == 1:
-        # window size=1, no smoothing
-        return PW, IF, [], []
-
-    else:
-        if o_msg:
-            print('Smoothing...')
-
-        # compute output length & pre-allocate array
-        outLen = int(np.ceil((np.shape(data)[0] - winLen) / float(
-            stepLen))) + 1
-        pw, cf, scv, bw = np.zeros((4, outLen))
-
-        # get smoothed power and coefficient of variation
-        wins = slidingWindow(PW, winLen, stepLen)
-        for ind, win in enumerate(wins):
-            pw[ind] = np.mean(win)
-            scv[ind] = np.std(win) / np.mean(win)
-
-            # get smoothed center freq & bandwidth
-        wins = slidingWindow(IF, winLen, stepLen)
-        for ind, win in enumerate(wins):
-            cf[ind] = np.mean(win)  # smooth center freq
-            bw[ind] = np.diff(np.percentile(win, q=[25, 75]), axis=0)
-
-        return pw, cf, scv, bw
-
-
-def slidingWindow(data, winLen=1000, stepLen=500):
-    """
-    Returns a generator that will iterate through
-    the defined lengths of 1D array with window of
-    length winLen and step length of stepLen;
-    if not a perfect divisor, last slice gets remaining data
-    --- Args ---
-    data : array, 1d
-        time series to slide over
-
-    winLen : int, samples
-        size of sliding window
-        default: 1000
-
-    stepLen : int, samples
-        step size of window
-        default: 500
-
-    --- Return ---
-    generator with slices of data
-        channel x winLen
-    """
-
-    # Pre-compute number of length of output
+    # Pre-compute number of length of output;
     # last slice gets whatever data is remaining
-    outLen = int(np.ceil((np.shape(data)[0] - winLen) / float(stepLen))) + 1
+    step_len = int(nperseg-noverlap)
+    out_len = int(np.ceil((np.shape(data)[-1] - nperseg) / step_len)) + 1
     # make it rain
-    for ind in range(outLen):
-        yield data[stepLen * ind:winLen + stepLen * ind]
+    if len(np.shape(data))==1:
+        for ind in range(out_len):
+            yield data[step_len * ind:nperseg + step_len * ind]
+    elif len(np.shape(data))==2:
+        for ind in range(out_len):
+            yield data[:, step_len * ind:nperseg + step_len * ind]
 
+def yield_sliding_window_pp(event_times, fs, win_len=1., overlap_len=0., end_time=None):
+    """ Return a generator that will iterate through a list of event times
+    in a sliding window fashion, and return the event times and the absolute
+    position (indices) of those event times that fell within each rolling window.
 
-def bin_spikes(spikeTimes, binnedLen=-1, spkRate=40000., binRate=1000.):
+    Parameters
+    ----------
+    event_times : array, 1D
+        Event timestamps (e.g. spiketrain timestamps).
+    fs : float, samples
+        Sampling rate of the event_times; use to convert spike index into spike
+        time in units of time.
+    win_len : float, seconds, default=1.0
+        Length of rolling window in seconds.
+    overlap_len : float, seconds, default=0
+        Length of rolling window overlap in seconds.
+    end_len : float, seconds, default=None
+        Maximum length, in seconds, to slide window to. Handy if trying to match
+        a timeseries.
+        If None, ends at the last event time.
+
+    Returns
+    -------
+    Generator that feeds event times and indices.
+    Each advance returns a tuple of (event_time, event_index)
     """
-    Takes a vector of spike times and converted to a binarized array, given
-    pre-specified spike sampling rate and binned rate
-    example use:
-        bsp = bin_spikes(spk_times, spkRate=20000., binRate=1250.)
-        for ind, win in enumerate(utils.slidingWindow(bsp, winLen=1250, stepLen=1250/2)):
-            smob[ind] = sum(win[0])
-    --- Args ---
-    spikeTimes : array, 1d
-        list of spike times
+    # change event indices into timestamps by dividing by fs
+    event_times = event_times / fs
+    step_len = win_len - overlap_len
+    if end_time is None:
+        end_time = event_times[-1]
+    # compute how many windows there will be
+    out_len = int(np.ceil((end_time - win_len) / step_len)) + 1
+    for ind in range(out_len):
+        event_inds = np.where((event_times>=ind*step_len) & (event_times< (win_len+ind*step_len)))[0]
+        yield event_times[event_inds], event_inds, out_len
 
-    binnedLen : int
-        length of binarized spike train in samples, can be constrained
-        by matching LFP vector length
-        default: -1, end determined by last spike-time
 
-    spkRate : float
-        sampling rate of spike stamps, 1. if spike time vector contain
-        actual time stamps of spikes, instead of indices
-        default: 40000.
+def binarize_spiketime(spike_times, len_binned=None, spike_rate=40000., bin_rate=1000.):
+    """Takes a vector of spike times and converted to a binarized array, given
+    pre-specified spike sampling rate and binned rate.
 
-    binRate : float
-        rate at which binarized spike train is sampled at
-        default: 1000.
+    Parameters
+    ----------
+    spike_times : array, 1D
+        Array of spike times.
+    len_binned : int, default=None
+        Length of binarized spike train in samples, can be constrained by
+        matching (apriori known) LFP vector length.
+        If None, end determined by last spike-time.
+    spike_rate : float, default=40000
+        Sampling rate of spike stamps; set to 1 if spike time vector contain
+        actual time stamps of spikes, instead of indices in sample number.
+    bin_rate : floatm default=1000
+        Rate at which binarized spike train is sampled at.
 
-    --- Return ---
-    binary array of spikes (float)
+    Returns
+    -------
+    bsp : array, 1D
+        Binary array of spikes
+
+    Example
+    -------
+    Binarize a spike train and compute the rolling window firing rate.
+
+    fr=[]
+    bsp = binarize_spiketime(spk_times, spike_rate=20000., bin_rate=1250.)
+    for ind, win in enumerate(utils.yield_sliding_window(bsp, win_len=1250, noverlap=1250/2)):
+        fr.append(sum(win))
     """
-    if binnedLen == -1:
+    if len_binned is None:
         # no specified time to truncate, take last spike time as end
-        t_end = int(round(spikeTimes[-1] / spkRate * binRate)) + 1
+        t_end = int(round(spike_times[-1] / spike_rate * bin_rate)) + 1
     else:
         # length of binary vector is predetermined
-        t_end = binnedLen
+        t_end = len_binned
 
     # make binary bins
     bsp = np.zeros(t_end)
     # convert spike index to downsampled index
-    inds = spikeTimes / spkRate * binRate
-    # truncate spikes to match end time & make int
-
+    inds = (spike_times / spike_rate * bin_rate).astype(int)
     for i in inds:
+        # have to loop through indices because there may be overlapping windows
         bsp[i] += 1
-    # bsp[inds[inds < t_end].astype(int)] += 1
     return bsp
 
 
-def smooth_events(eventTimes, values=None, fs=1., winLen=1., stepLen=0.5):
-    """
-    Takes a vector of event times (or samples) and compute rolling window
-    event count (or average ) over the events.
-    --- Args ---
-    eventTimes: array, 1d
-        array of event times (or sample indices)
-
-    values: array, 1d
-        array of event values
-        default: None
-
-    fs: float
-        sampling rate of eventTimes
-        default: 1. i.e. represents time in seconds
-
-    winLen: float
-        time length of window
-        default: 1 second
-
-    stepLen: float
-        time length of stepping
-        default: 0.5 seconds
-
-    --- Return ---
-    array of smoothed values (float)
-
-    """
-    # change event indices into timestamps by dividing by fs
-    eventTimes = eventTimes * 1. / fs
-    outLen = int(np.ceil((eventTimes[-1] - winLen) / float(stepLen))) + 1
-    smoothed = np.zeros(outLen)
-    if values is None:
-        # no values attached, just count how many occurrences (probably spikes)
-        for ind in range(outLen):
-            smoothed[ind] = np.shape(eventTimes[(eventTimes >= ind * stepLen) &
-                                                (eventTimes < winLen + ind *
-                                                 stepLen)])[0]
-    else:
-        # average the values
-        for ind in range(outLen):
-            smoothed[ind] = np.mean(values[(eventTimes >= ind * stepLen) & (
-                eventTimes < winLen + ind * stepLen)])
-
-    return smoothed
-
+"""
+#----------------------
+"""
 
 def corrcoefp(matrix):
     """
@@ -448,47 +448,3 @@ def corr_plot(C, labels=None, pv=None, pvThresh=0.01, cmap='RdBu', bounds=None):
     if pv is not None:
         sigInds = np.where(pv < pvThresh)
         plt.scatter(sigInds[1], sigInds[0], s=50, marker='*', c='k')
-
-
-# def plot_pct_psd(spg, f_axis, rank_freqs=(8.,12.), pct=(0, 25, 50, 75), sum_log_power=True):
-#     """ Compute percentile power spectra using the spectrogram, ranked by power within
-#     a specific band. Essentially a different way of visualizing correlation between freqs.
-#
-#     Parameters
-#     ----------
-#     spg : array, 2-D (freq x time)
-#         Spectrogram to be used for PSD computation.
-#     f_axis : array, 1-D
-#         Frequency axis of spectrogram.
-#     rank_freqs : tuple (default=(8,12))
-#         Frequency band to sum over for ranking.
-#     pct : tuple (default=(0,25,50,75))
-#         Left bin edges to bin the spectrogram slices.
-#     sum_log_power : bool (default=True)
-#         If true, sum logged power instead of raw power, to counteract 1/f effect.
-#
-#     Returns
-#     -------
-#     power_dgt : array, 1D (1 x time)
-#         Bin membership of the spectrogram slices.
-#
-#     """
-#
-#     f_ind = np.where(np.logical_and(f_axis>=rank_freqs[0],f_axis<=rank_freqs[1]))
-#
-#     if sum_log_power:
-#         power_vals = np.sum(np.log10(spg[f_ind,:][0]), axis=0)
-#     else:
-#         power_vals = np.sum(spg[f_ind,:][0], axis=0)
-#
-#     bins = np.percentile(power_vals, q=pct)
-#     power_dgt = np.digitize(power_vals, bins, right=False)
-#     for i in np.unique(power_dgt):
-#         plt.loglog(f_axis,np.mean(spg[:,power_dgt==i], axis=1))
-#
-#     plt.fill_between(rank_freqs, plt.ylim()[0], plt.ylim()[1], facecolor='k', alpha=0.1)
-#     plt.legend(pct)
-#     plt.xlabel('Frequency (Hz)')
-#     plt.ylabel('Power')
-#
-#     return power_dgt

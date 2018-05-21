@@ -3,7 +3,10 @@ import scipy as sp
 import matplotlib.pyplot as plt
 from scipy.stats import expon
 import neurodsp as ndsp
+from neurodsp.timefrequency import _hilbert_ignore_nan
 from . import utils
+
+import time
 
 
 # object that has attributes for taking any segment/ time-series data
@@ -84,6 +87,20 @@ class LFPCA:
         Compute spectrogram of time-series data.
         """
         self.f_axis,self.t_axis,self.spg = sp.signal.spectrogram(self.data,fs=self.fs,nperseg=int(self.nperseg),noverlap=int(self.noverlap))
+
+        if self.spg_outlierpct>0.:
+            n_discard = int(np.ceil(len(self.t_axis) / 100. * self.spg_outlierpct))
+            n_keep = int(len(self.t_axis)-n_discard)
+            spg_ = np.zeros((self.numchan,len(self.f_axis),n_keep))
+            self.outlier_inds = np.zeros((self.numchan,n_discard))
+            for chan in range(self.numchan):
+                # discard time windows with high powers, round up so it doesn't get a zero
+                self.outlier_inds[chan,:] = np.argsort(np.mean(np.log10(self.spg[chan,:,:]), axis=0))[-n_discard:]
+                spg_[chan,:,:] = np.delete(self.spg[chan], self.outlier_inds[chan,:], axis=-1)
+            self.spg = spg_
+            self.outlier_inds=self.outlier_inds.astype(int)
+
+
         if self.max_freq is not None:
             freq_inds = np.where(self.f_axis<self.max_freq)[0]
             self.f_axis = self.f_axis[freq_inds]
@@ -103,17 +120,18 @@ class LFPCA:
         Compute the spectral coefficient of variation (SCV) by taking standard
         deviation over the mean.
         """
-        if self.spg_outlierpct>0.:
-            scv_ = np.zeros((self.numchan, len(self.f_axis)))
-            spg_ = self.spg
-            for chan in range(self.numchan):
-                # discard time windows with high powers, round up so it doesn't get a zero
-                discard = int(np.ceil(len(self.t_axis) / 100. * self.spg_outlierpct))
-                outlieridx = np.argsort(np.mean(np.log10(spg_[chan,:,:]), axis=0))[:-discard]
-                scv_[chan, :] = np.std(spg_[chan][:,outlieridx], axis=-1) / np.mean(spg_[chan][:,outlieridx], axis=-1)
-            self.scv = scv_
-        else:
-            self.scv = np.std(self.spg, axis=-1) / np.mean(self.spg, axis=-1)
+        self.scv = np.std(self.spg, axis=-1) / np.mean(self.spg, axis=-1)
+        # if self.spg_outlierpct>0.:
+        #     scv_ = np.zeros((self.numchan, len(self.f_axis)))
+        #     spg_ = self.spg
+        #     for chan in range(self.numchan):
+        #         # discard time windows with high powers, round up so it doesn't get a zero
+        #         discard = int(np.ceil(len(self.t_axis) / 100. * self.spg_outlierpct))
+        #         outlieridx = np.argsort(np.mean(np.log10(spg_[chan,:,:]), axis=0))[:-discard]
+        #         scv_[chan, :] = np.std(spg_[chan][:,outlieridx], axis=-1) / np.mean(spg_[chan][:,outlieridx], axis=-1)
+        #     self.scv = scv_
+        # else:
+        #     self.scv = np.std(self.spg, axis=-1) / np.mean(self.spg, axis=-1)
 
     # utility so I don't have to write the same 3 lines of code always.
     def compute_all_spectral(self):
@@ -184,15 +202,22 @@ class LFPCA:
 
     # -------- plotting utilities ------------
     # plotting histogram for a specific channel and frequency and fitting an exp pdf over it
-    def plot_expfit(self,chan,freq_ind,num_bins=100):
+    def plot_expfit(self,chan,freq_ind,num_bins=100,plot_cdf=False):
         """
         Plot the histogram of a single frequency, at a single channel.
         """
         spg_slice = self.spg[chan,freq_ind,:]
-#        fig, ax = plt.subplots(1, 1)
-        n, x, _ = plt.hist(spg_slice,normed=True,bins=num_bins)
         rv = expon(scale=sp.stats.expon.fit(spg_slice,floc=0)[1])
-        plt.plot(x, rv.pdf(x), 'k-', lw=2, label='Fit PDF')
+        if plot_cdf:
+            # plot CDF
+            # n,x = np.histogram(spg_slice,normed=True,bins=num_bins)
+            # plt.plot(x[:-1], np.cumsum(n), lw=2)
+            n, x, _ = plt.hist(spg_slice,bins=num_bins,density=True,cumulative=True, alpha=0.8)
+            plt.plot(x, rv.cdf(x), 'k-', lw=2, label='Fit CDF')
+        else:
+            # plot PDF
+            n, x, _ = plt.hist(spg_slice,normed=True,bins=num_bins, alpha=0.8)
+            plt.plot(x, rv.pdf(x), 'k-', lw=2, label='Fit PDF')
         plt.legend()
         plt.xlabel('Spectral Power')
         plt.ylabel('Probability')
@@ -248,12 +273,53 @@ def lfpca_load_spec(npz_filename):
     return lfpca_obj
 
 def fit_test_exp(data, floc=0):
+    """ Fit and KS test against exponential.
+
+    Parameters
+    ----------
+    data : type
+        Description of parameter `data`.
+    floc : type
+        Description of parameter `floc`.
+
+    Returns
+    -------
+    type
+        Description of returned object.
+
+    """
     param = sp.stats.expon.fit(data,floc=floc)
     exp_scale = param[1]
     ks_stat, ks_pval = sp.stats.kstest(data, 'expon', args=param)
     return exp_scale, ks_stat, ks_pval
 
 def compute_BP_HT(data, fs, passband, N_cycles=5, ac_thr=0.05):
+    """ Compute bandpass filtered Hilbert transforms.
+
+    Parameters
+    ----------
+    data : array, 1D
+        Time-series to be filtered.
+    fs : float, Hz
+        Sampling rate.
+    passband : tuple, (f_low, f_high)
+        Bandpass pass band, 0 if disregard.
+    N_cycles : int, default=5
+        Number of cycles of filter.
+    ac_thr : float
+        Autocorrelation threshold to determine as effective filter length.
+
+    Returns
+    -------
+    sig_power : array, 1D
+        Hilbert power.
+    sig_phase : array, 1D
+        Hilbert phase.
+    valid_inds : array, 1D
+        Valid indices of the filtered time-series (non-NaNs).
+    ker_len : int, samples
+        Effective filter length.
+    """
     # bandpass filter data
     if passband[0]<=0.:
         # passband starts from 0Hz, lowpass
@@ -268,14 +334,18 @@ def compute_BP_HT(data, fs, passband, N_cycles=5, ac_thr=0.05):
     # get effective filter length where autocorrelation drops below the threshold for the last time
     ker_len = np.where(np.abs(utils.autocorr(filt_ker)[1])>=ac_thr)[0][-1]+1
 
-    # get Hilbert transform
-    HT = sp.signal.hilbert(data_filt[~np.isnan(data_filt)])
+    # # get Hilbert transform
+    # HT = sp.signal.hilbert(data_filt[~np.isnan(data_filt)])
+    # # amplitude, pad filter edge artifacts with zero
+    # sig_power = np.ones_like(data)*np.nan
+    # sig_phase = np.ones_like(data)*np.nan
+    # sig_power[~np.isnan(data_filt)] = np.abs(HT)**2
+    # sig_phase[~np.isnan(data_filt)] = np.angle(HT)
 
-    # amplitude, pad filter edge artifacts with zero
-    sig_power = np.ones_like(data)*np.nan
-    sig_phase = np.ones_like(data)*np.nan
-    sig_power[~np.isnan(data_filt)] = np.abs(HT)**2
-    sig_phase[~np.isnan(data_filt)] = np.angle(HT)
+    # use neurodsp Hilbert function to automatically pad to power of 2
+    HT = _hilbert_ignore_nan(data_filt,hilbert_increase_N=True)
+    sig_power = np.abs(HT)**2
+    sig_phase = np.angle(HT)
 
     # also return data-valid indices for convenience
     valid_inds = np.where(~np.isnan(data_filt))[0]
