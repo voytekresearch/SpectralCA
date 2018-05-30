@@ -240,9 +240,9 @@ class LFPCA:
             if plot_mean:
                 m, s = _return_meanstd(getattr(self, plot_keys[i]), axis=0)
                 plt.fill_between(self.f_axis[p_inds], m[p_inds]-s[p_inds], m[p_inds]+s[p_inds], color=plot_color, alpha=0.5)
-                plt.loglog(self.f_axis[p_inds], m, plot_color[p_inds])
+                plt.loglog(self.f_axis[p_inds], m[p_inds], plot_color)
             else:
-                plt.loglog(self.f_axis[p_inds], getattr(self, plot_keys[i])[plot_chan,p_inds].T, plot_color, alpha=np.max([0.1, 0.75-(np.size(plot_chan)-1)/10]))
+                plt.loglog(self.f_axis[p_inds], getattr(self, plot_keys[i])[:,p_inds][plot_chan].T, plot_color, alpha=np.max([0.1, 1-(np.size(plot_chan)-1)/5]))
 
             plt.title(titles[i])
             plt.xlim(self.f_axis[1], self.f_axis[-1])
