@@ -347,14 +347,6 @@ def compute_BP_HT(data, fs, passband, N_cycles=5, ac_thr=0.05):
     # get effective filter length where autocorrelation drops below the threshold for the last time
     ker_len = np.where(np.abs(utils.autocorr(filt_ker)[1])>=ac_thr)[0][-1]+1
 
-    # # get Hilbert transform
-    # HT = sp.signal.hilbert(data_filt[~np.isnan(data_filt)])
-    # # amplitude, pad filter edge artifacts with zero
-    # sig_power = np.ones_like(data)*np.nan
-    # sig_phase = np.ones_like(data)*np.nan
-    # sig_power[~np.isnan(data_filt)] = np.abs(HT)**2
-    # sig_phase[~np.isnan(data_filt)] = np.angle(HT)
-
     # use neurodsp Hilbert function to automatically pad to power of 2
     HT = _hilbert_ignore_nan(data_filt,hilbert_increase_N=True)
     sig_power = np.abs(HT)**2
