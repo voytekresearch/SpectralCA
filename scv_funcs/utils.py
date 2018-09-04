@@ -149,6 +149,18 @@ def autocorr(data, max_lag=1000, lag_step=1):
 
     return ac_timepoints, ac / ac[0]
 
+def grab_window(data, center_idx, window, axis):
+    beg_idx = center_idx+window[0]
+    end_idx = center_idx+window[1]
+    if beg_idx>=0 and end_idx<=data.shape[0]:
+        return data[:, center_idx+window[0]:center_idx+window[1]]
+
+def grab_stack_trials(data, center_idxs, window=[-500,500], axis=-1):
+    # iterate through trial center indices and grab window around it
+    trials_app = [grab_window(data, idx, window, axis) for idx in center_idxs]
+    # stack in an extra dimension
+    return np.concatenate
+
 
 # def inst_pwcf(data, fs, frange, n_cycles=3, winLen=1, stepLen=1, logpower=False):
 #     """

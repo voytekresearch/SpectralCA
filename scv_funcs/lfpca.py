@@ -218,10 +218,10 @@ class LFPCA:
             # plot PDF
             n, x, _ = plt.hist(spg_slice,normed=True,bins=num_bins, alpha=0.8)
             plt.plot(x, rv.pdf(x), 'k-', lw=2, label='Fit PDF')
-        plt.legend()
-        plt.xlabel('Spectral Power')
+        #plt.legend()
+        plt.xlabel('Power ($V^2/Hz$)', fontsize=18)
         #plt.ylabel('Probability')
-        plt.title('%.1fHz, p=%.4f' %(self.f_axis[freq_ind],self.ks_pvals[chan,freq_ind]))
+        plt.legend(['%.1fHz, p=%.4f' %(self.f_axis[freq_ind],self.ks_pvals[chan,freq_ind])])
 
 
     def plot_spectral(self, plot_mean=True, plot_chan=None, plot_color='k', exc_freqs=None):
@@ -233,10 +233,10 @@ class LFPCA:
         else:
             p_inds = np.arange(len(self.f_axis))
 
-        titles = ['PSD', 'SCV', 'KS P-Val', 'KS Stats']
+        titles = ['PSD', 'SCV', 'KS p-value', 'KS Stats']
         plot_keys = ['psd', 'scv', 'ks_pvals', 'ks_stats']
-        for i in range(4):
-            plt.subplot(1,4,i+1)
+        for i in range(3):
+            ax1=plt.subplot(1,3,i+1)
             if plot_mean:
                 m, s = _return_meanstd(getattr(self, plot_keys[i]), axis=0)
                 plt.fill_between(self.f_axis[p_inds], m[p_inds]-s[p_inds], m[p_inds]+s[p_inds], color=plot_color, alpha=0.5)
@@ -246,10 +246,11 @@ class LFPCA:
 
             plt.title(titles[i])
             plt.xlim(self.f_axis[1], self.f_axis[-1])
-            plt.xlabel('Frequency (Hz)')
-            if i is 1: plt.ylim([0.5,5.]) # limit y-axis for scv
+            plt.minorticks_off()
+            plt.xlabel('Frequency (Hz)', fontsize=18)
+            if plot_keys[i] is 'scv':
+                plt.yticks([0.5,1,2,4],('0.5','1','2','4')) # limit y-axis for scv
             if i is 2: plt.ylim([1e-7,1])
-
 
         plt.tight_layout()
 
@@ -260,7 +261,7 @@ def _freq_to_ind(f_axis, exc_freqs):
     return list(set(np.arange(len(f_axis)))-set(np.concatenate(np.array(exc_inds),axis=0)))
 
 def lfpca_load_spec(npz_filename):
-    """ Load an .npz file to populate the computed spectral fields of lfpca
+    """ Load an .npz file to populate the computed spe .ctral fields of lfpca
 
     Parameters
     ----------
