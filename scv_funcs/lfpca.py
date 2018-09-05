@@ -298,8 +298,12 @@ def fit_test_exp(data, floc=0):
 
     Returns
     -------
-    type
-        Description of returned object.
+    exp_scale : float
+        mean parameter of exponential fit.
+    ks_stat: float
+        KS test statistic.
+    ks_pval: float
+        KS test p-value.
 
     """
     param = sp.stats.expon.fit(data,floc=floc)
@@ -343,7 +347,8 @@ def compute_BP_HT(data, fs, passband, N_cycles=5, ac_thr=0.05):
         data_filt, filt_ker = ndsp.filter(data,fs,'highpass',f_hi=passband[0],N_cycles=N_cycles,return_kernel=True)
     else:
         # bandpass
-        data_filt, filt_ker = ndsp.filter(data,fs,'bandpass',f_lo=passband[0],f_hi=passband[1],N_cycles=N_cycles,return_kernel=True)
+        #data_filt, filt_ker = ndsp.filter(data,fs,'bandpass',f_lo=passband[0],f_hi=passband[1],N_cycles=N_cycles,return_kernel=True)
+        data_filt, filt_ker = ndsp.filter(data,fs,'bandpass',fc=passband,N_cycles=N_cycles,return_kernel=True)
 
     # get effective filter length where autocorrelation drops below the threshold for the last time
     ker_len = np.where(np.abs(utils.autocorr(filt_ker)[1])>=ac_thr)[0][-1]+1
