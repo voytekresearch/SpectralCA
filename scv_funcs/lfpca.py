@@ -121,17 +121,29 @@ class LFPCA:
         deviation over the mean.
         """
         self.scv = np.std(self.spg, axis=-1) / np.mean(self.spg, axis=-1)
-        # if self.spg_outlierpct>0.:
-        #     scv_ = np.zeros((self.numchan, len(self.f_axis)))
-        #     spg_ = self.spg
-        #     for chan in range(self.numchan):
-        #         # discard time windows with high powers, round up so it doesn't get a zero
-        #         discard = int(np.ceil(len(self.t_axis) / 100. * self.spg_outlierpct))
-        #         outlieridx = np.argsort(np.mean(np.log10(spg_[chan,:,:]), axis=0))[:-discard]
-        #         scv_[chan, :] = np.std(spg_[chan][:,outlieridx], axis=-1) / np.mean(spg_[chan][:,outlieridx], axis=-1)
-        #     self.scv = scv_
-        # else:
-        #     self.scv = np.std(self.spg, axis=-1) / np.mean(self.spg, axis=-1)
+
+    # # calculate adjacent phase consistency
+    # def compute_apc(self):
+    #     """
+    #     Compute the phase difference between adjacent frequency bins over all
+    #     time slices.
+    #     """
+    # function NFC = neighbor_phase(data, fs, winLen, stepLen)
+    # %NFC = neighbor_phase(data, fs, winLen, stepLen)
+    #
+    #
+    # lag = 1;
+    # [F Ft Fa] = stft([],data, fs, winLen, stepLen, 400); %prime window size
+    # ph = F./abs(F); %normalize fourier amplitude
+    # df = fs/winLen;
+    # %dph = F(1:end-lag,:,:)./F(1+lag:end,:,:);
+    # %keyboard
+    # for i=1:(200/df)+1
+    #     dph(i,:) = mean((ph(i+1,:,:)./ph(i,:,:)),3);
+    # end
+    # NFC = abs(dph(1:end-1,:))+abs(dph(2:end,:));
+
+
 
     # utility so I don't have to write the same 3 lines of code always.
     def compute_all_spectral(self):
