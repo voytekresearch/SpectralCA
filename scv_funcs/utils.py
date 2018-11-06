@@ -32,6 +32,8 @@ def percentile_spectrogram(spg, f_axis, rank_freqs=(8., 12.), pct=(0, 25, 50, 75
     power_dgt : array, 1D (1 x time)
         Bin membership of the spectrogram slices.
 
+    power_binned :
+
     """
     f_ind = np.where(np.logical_and(
         f_axis >= rank_freqs[0], f_axis <= rank_freqs[1]))
@@ -56,7 +58,7 @@ def percentile_spectrogram(spg, f_axis, rank_freqs=(8., 12.), pct=(0, 25, 50, 75
     return power_dgt, power_binned
 
 
-def plot_power_examples(data, fs, t_spg, pwr_dgt, rank_freqs, N_cycles=5, N_to_plot=6, power_adj=5, std_YL=True):
+def plot_power_examples(data, fs, t_spg, pwr_dgt, rank_freqs, plot_t=1., N_cycles=5, N_to_plot=6, power_adj=5, std_YL=True):
     """ Plots examples of time series that fell into the quantile-binned power
     values at the specified frequency. Use in conjunction with percentile_spectrogram.
 
@@ -87,9 +89,10 @@ def plot_power_examples(data, fs, t_spg, pwr_dgt, rank_freqs, N_cycles=5, N_to_p
     ymin, ymax = 0, 0
     # filter data and multiplier power constant for ease of visualization
     if power_adj:
-        data_filt = ndsp.filter(
-            data, fs, 'bandpass', f_lo=rank_freqs[0], f_hi=rank_freqs[1], N_cycles=N_cycles) * power_adj
-    plot_len = int(fs / 2)
+        data_filt = ndsp.filt.filter_signal(
+            data, fs, 'bandpass', fc=rank_freqs, n_cycles=N_cycles) * power_adj
+
+    plot_len = int(plot_t*fs/2)
     t_plot = np.arange(-plot_len, plot_len) / fs
     n_bins = len(np.unique(pwr_dgt))
     # loop through bins
@@ -111,6 +114,7 @@ def plot_power_examples(data, fs, t_spg, pwr_dgt, rank_freqs, N_cycles=5, N_to_p
             plt.title('Q%i' % j)
             ymin = min(ymin, plt.ylim()[0])
             ymax = max(ymax, plt.ylim()[1])
+            plt.yticks([0])
     # loop through again and reset y-axis to be the same
     if std_YL:
         for j in np.unique(pwr_dgt):
@@ -173,12 +177,22 @@ def grab_stack_epochs(data, center_idxs, window=(-500,500), axis=-1):
     trials_app = []
     for i,idx in enumerate(center_idxs):
         beg_idx, end_idx = idx+window[0], idx+window[1]
-        if beg_idx>=0 and end_idx<=data.shape[0]:
-            trials_app.append(np.take_along_axis(data, np.arange(beg_idx,end_idx), axis=axis))
+        if beg_idx>=0 and end_idx<=data.shape[axis]:
+            #trials_app.append(np.take_along_axis(data, np.arange(beg_idx,end_idx)[None,:], axis=axis))
+            trials_app.append(np.take(data, np.arange(beg_idx,end_idx), axis=axis))
         else:
             print('Trial %i window exceeds data bounds.'%(i+1))
     # stack in an extra dimension
     return np.stack(trials_app, axis=-1)
+
+def FT_epoched(sig_epoch, fs, window, nperseg=None, f_lim=None):
+    win = sp.signal.windows.hamming(len(inds))
+    x_sel = x[:,inds,:]*win[np.newaxis, :, np.newaxis]
+
+    # precompute per-trial PSD, use n=fs for FFT to get 1Hz spacing
+    P = np.abs(np.fft.fft(x_sel, n=int(fs), axis=1))**2.
+    f_axis = np.fft.fftfreq(int(fs), 1/fs)
+
 
 
 # def inst_pwcf(data, fs, frange, n_cycles=3, winLen=1, stepLen=1, logpower=False):
@@ -275,7 +289,7 @@ def grab_stack_epochs(data, center_idxs, window=(-500,500), axis=-1):
 
 
 def yield_sliding_window_ts(data, nperseg=1000, noverlap=500):
-    """ Return a generator that will iterate through the defined lengths of 1D
+    """ Return a generator that will iterate through the defined lengths of 2D
     array with window of length nperseg and step length of noverlap; if not a
     perfect divisor, last slice gets remaining data.
 
