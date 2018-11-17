@@ -231,7 +231,7 @@ class LFPCA:
             n, x, _ = plt.hist(spg_slice,normed=True,bins=num_bins, alpha=0.8)
             plt.plot(x, rv.pdf(x), 'k-', lw=2, label='Fit PDF')
         #plt.legend()
-        plt.xlabel('Power ($V^2/Hz$)', fontsize=18)
+        plt.xlabel('Power ($V^2/Hz$)', fontsize=14)
         #plt.ylabel('Probability')
         plt.legend(['%.1fHz, p=%.4f' %(self.f_axis[freq_ind],self.ks_pvals[chan,freq_ind])])
 
@@ -256,10 +256,10 @@ class LFPCA:
             else:
                 plt.loglog(self.f_axis[p_inds], getattr(self, plot_keys[i])[:,p_inds][plot_chan].T, plot_color, alpha=np.max([0.1, 1-(np.size(plot_chan)-1)/5]))
 
-            plt.title(titles[i])
+            plt.title(titles[i], fontsize=14)
             plt.xlim(self.f_axis[1], self.f_axis[-1])
             plt.minorticks_off()
-            plt.xlabel('Frequency (Hz)', fontsize=18)
+            plt.xlabel('Frequency (Hz)', fontsize=14)
             if plot_keys[i] is 'scv':
                 plt.yticks([0.5,1,2,4],('0.5','1','2','4')) # limit y-axis for scv
             if i is 2: plt.ylim([1e-7,1])
