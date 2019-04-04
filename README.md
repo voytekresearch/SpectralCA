@@ -1,6 +1,6 @@
-# SpectralCV
+# SpectralCA
 
-Notebooks for Spectral CV project 
+Notebooks for Spectral Component Analysis project 
 
-For SCV computations, refer to [neurodsp](https://github.com/voytekresearch/neurodsp) toolbox.
+For SCA computations, refer to [neurodsp](https://github.com/voytekresearch/neurodsp) toolbox.
 
