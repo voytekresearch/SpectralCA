@@ -10,7 +10,7 @@ import time
 
 
 # object that has attributes for taking any segment/ time-series data
-class LFPCA:
+class SCA:
     """ Analysis object for time-frequency decomposition of time-series data.
     Attributes:
         data : array, 2D (chan x time)
@@ -26,7 +26,7 @@ class LFPCA:
 
     def __init__(self, analysis_params):
         """
-        Initialize LFPCA object and populate data and analysis parameters.
+        Initialize SCA object and populate data and analysis parameters.
         """
         # parse analysis parameters
         self.nperseg = analysis_params['nperseg']
@@ -272,8 +272,8 @@ def _freq_to_ind(f_axis, exc_freqs):
         exc_inds.append(np.where(np.logical_and(f_axis>=ef[0],f_axis<=ef[1]))[0])
     return list(set(np.arange(len(f_axis)))-set(np.concatenate(np.array(exc_inds),axis=0)))
 
-def lfpca_load_spec(npz_filename):
-    """ Load an .npz file to populate the computed spe .ctral fields of lfpca
+def SCA_load_spec(npz_filename):
+    """ Load an .npz file to populate the computed spe .ctral fields of SCA
 
     Parameters
     ----------
@@ -282,8 +282,8 @@ def lfpca_load_spec(npz_filename):
 
     Returns
     -------
-    lfpca_obj
-        Populated LFPCA object.
+    SCA_obj
+        Populated SCA object.
 
     """
     data = np.load(npz_filename)
@@ -292,11 +292,11 @@ def lfpca_load_spec(npz_filename):
     if 'spg' in data.keys():
         # if spectrogram was saved, load as well
         data_fields.append('spg')
-    lfpca_obj = LFPCA(analysis_params)
+    SCA_obj = SCA(analysis_params)
     for df in data_fields:
-        setattr(lfpca_obj, df, data[df])
-    lfpca_obj.numchan = lfpca_obj.psd.shape[0]
-    return lfpca_obj
+        setattr(SCA_obj, df, data[df])
+    SCA_obj.numchan = SCA_obj.psd.shape[0]
+    return SCA_obj
 
 def fit_test_exp(data, floc=0):
     """ Fit and KS test against exponential.

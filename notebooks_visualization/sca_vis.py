@@ -35,7 +35,7 @@ def plot_vis(lf, chan=0, select_freq=10, select_bin=20):
 
     # set up interact
     # f: frequency
-    def update_spct_hist(channel=0, f=10, numbins=20):
+    def update_spct_hist(channel=1, f=10, numbins=20):
         plot_chan = int(channel)
         plot_freq = np.where(lf.f_axis==f)[0][0]
         y, x = np.histogram(lf.spg[plot_chan,plot_freq,:], bins=numbins, density=True)
