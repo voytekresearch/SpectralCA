@@ -272,7 +272,7 @@ def _freq_to_ind(f_axis, exc_freqs):
         exc_inds.append(np.where(np.logical_and(f_axis>=ef[0],f_axis<=ef[1]))[0])
     return list(set(np.arange(len(f_axis)))-set(np.concatenate(np.array(exc_inds),axis=0)))
 
-def SCA_load_spec(npz_filename):
+def sca_load_spec(npz_filename):
     """ Load an .npz file to populate the computed spe .ctral fields of SCA
 
     Parameters
@@ -282,8 +282,8 @@ def SCA_load_spec(npz_filename):
 
     Returns
     -------
-    SCA_obj
-        Populated SCA object.
+    sca_obj
+        Populated sca object.
 
     """
     data = np.load(npz_filename)
@@ -292,11 +292,11 @@ def SCA_load_spec(npz_filename):
     if 'spg' in data.keys():
         # if spectrogram was saved, load as well
         data_fields.append('spg')
-    SCA_obj = SCA(analysis_params)
+    sca_obj = SCA(analysis_params)
     for df in data_fields:
-        setattr(SCA_obj, df, data[df])
-    SCA_obj.numchan = SCA_obj.psd.shape[0]
-    return SCA_obj
+        setattr(sca_obj, df, data[df])
+    sca_obj.numchan = sca_obj.psd.shape[0]
+    return sca_obj
 
 def fit_test_exp(data, floc=0):
     """ Fit and KS test against exponential.

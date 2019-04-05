@@ -5,7 +5,6 @@ from scipy.stats import expon
 import glob
 
 import neurodsp as ndsp
-from scv_funcs import lfpca
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -20,31 +19,31 @@ from ipywidgets import Layout, HBox, interactive
 
 output_notebook()
 
-def plot_vis(lf, chan=0, select_freq=10, select_bin=20):
+def plot_vis(sc, chan=0, select_freq=10, select_bin=20):
 
-    freq_vals = lf.f_axis[1:]
-    psd_vals = lf.psd[chan].T[1:]
-    scv_vals = lf.scv[chan].T[1:]
+    freq_vals = sc.f_axis[1:]
+    psd_vals = sc.psd[chan].T[1:]
+    scv_vals = sc.scv[chan].T[1:]
 
     source = ColumnDataSource(data=dict(freq_vals=freq_vals, 
                                         psd_vals=psd_vals, 
                                         scv_vals=scv_vals))
     # grabbing channel count from psd
-    chan_count, freq = lf.psd.shape
+    chan_count, freq = sc.psd.shape
     DEFAULT_TICKERS = list(map(str, range(chan_count)))
 
     # set up interact
     # f: frequency
     def update_spct_hist(channel=1, f=10, numbins=20):
         plot_chan = int(channel)
-        plot_freq = np.where(lf.f_axis==f)[0][0]
-        y, x = np.histogram(lf.spg[plot_chan,plot_freq,:], bins=numbins, density=True)
+        plot_freq = np.where(sc.f_axis==f)[0][0]
+        y, x = np.histogram(sc.spg[plot_chan,plot_freq,:], bins=numbins, density=True)
 
         # create a column data source for the plots to share
         data_source = {
-                       'freq_vals': lf.f_axis[1:],
-                       'psd_vals': lf.psd[channel].T[1:],
-                       'scv_vals': lf.scv[channel].T[1:]
+                       'freq_vals': sc.f_axis[1:],
+                       'psd_vals': sc.psd[channel].T[1:],
+                       'scv_vals': sc.scv[channel].T[1:]
                        }   
         source.data = data_source
         vline_psd.location = f
@@ -54,18 +53,18 @@ def plot_vis(lf, chan=0, select_freq=10, select_bin=20):
         hist_plot.data_source.data['right'] = x[1:]
         hist_plot.data_source.data['top'] = y    
         # update fitted
-        rv = expon(scale=sp.stats.expon.fit(lf.spg[plot_chan,plot_freq,:],floc=0)[1])
+        rv = expon(scale=sp.stats.expon.fit(sc.spg[plot_chan,plot_freq,:],floc=0)[1])
         fit_plot.data_source.data['x'] = x
         fit_plot.data_source.data['y'] = rv.pdf(x)
 
-        hist_fig.title.text = 'Freq = %.1fHz, p-value = %.4f'%(f, lf.ks_pvals[int(channel), f])
+        hist_fig.title.text = 'Freq = %.1fHz, p-value = %.4f'%(f, sc.ks_pvals[int(channel), f])
         push_notebook()
 
     # set up histogram
-    y, x = np.histogram(lf.spg[0,10,:], bins=20, density=True)
+    y, x = np.histogram(sc.spg[0,10,:], bins=20, density=True)
     hist_fig = figure(plot_height=300, plot_width=300, x_axis_label='Power', y_axis_label='Probability')
     hist_fig.axis.visible = False
-    hist_fig.title.text = 'Freq = %.1fHz, p-value = %.4f'%(10, lf.ks_pvals[int(1), 10])
+    hist_fig.title.text = 'Freq = %.1fHz, p-value = %.4f'%(10, sc.ks_pvals[int(1), 10])
     hist_fig.axis.major_label_text_font_size= '0pt'
     hist_plot = hist_fig.quad(top=y, bottom=0, left=x[:-1], right=x[1:], fill_color='#295B99', line_color="#033649")
 
