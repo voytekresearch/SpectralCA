@@ -86,12 +86,12 @@ class SCA:
         """
         Compute spectrogram of time-series data.
         """
-        self.f_axis,self.t_axis,self.spg = sp.signal.spectrogram(self.data,fs=self.fs,nperseg=int(self.nperseg),noverlap=int(self.noverlap))
+        self.f_axis,self.t_axis,self.spg = sp.signal.spectrogram(self.data,fs=self.fs,nperseg=int(self.nperseg),noverlap=int(self.noverlap),mode='complex')
 
         if self.spg_outlierpct>0.:
             n_discard = int(np.ceil(len(self.t_axis) / 100. * self.spg_outlierpct))
             n_keep = int(len(self.t_axis)-n_discard)
-            spg_ = np.zeros((self.numchan,len(self.f_axis),n_keep))
+            spg_ = np.zeros((self.numchan,len(self.f_axis),n_keep), dtype=np.complex64)
             self.outlier_inds = np.zeros((self.numchan,n_discard))
             for chan in range(self.numchan):
                 # discard time windows with high powers, round up so it doesn't get a zero
@@ -112,7 +112,7 @@ class SCA:
         Compute the power spectral density using Welch's method
         (mean over spectrogram)
         """
-        self.psd = np.mean(self.spg,axis=-1)
+        self.psd = np.mean(abs(self.spg)**2,axis=-1)
 
     # calculate the spectral coefficient of variation
     def compute_scv(self):
@@ -120,7 +120,7 @@ class SCA:
         Compute the spectral coefficient of variation (SCV) by taking standard
         deviation over the mean.
         """
-        self.scv = np.std(self.spg, axis=-1) / np.mean(self.spg, axis=-1)
+        self.scv = np.std(abs(self.spg)**2, axis=-1) / np.mean(abs(self.spg)**2, axis=-1)
 
     # # calculate adjacent phase consistency
     # def compute_apc(self):
@@ -168,10 +168,10 @@ class SCA:
         ks_stats = np.zeros_like(self.psd)
         for chan in range(self.numchan):
             for freq in range(len(self.f_axis)):
-                exp_scale[chan,freq],ks_stats[chan,freq],ks_pvals[chan,freq]=fit_test_exp(self.spg[chan,freq,:],floc=0)
-                # param = sp.stats.expon.fit(self.spg[chan,freq,:],floc=0)
+                exp_scale[chan,freq],ks_stats[chan,freq],ks_pvals[chan,freq]=fit_test_exp(abs(self.spg)**2[chan,freq,:],floc=0)
+                # param = sp.stats.expon.fit(abs(self.spg)**2[chan,freq,:],floc=0)
                 # exp_scale[chan,freq] = param[1]
-                # ks_stats[chan,freq], ks_pvals[chan,freq] = sp.stats.kstest(self.spg[chan,freq,:], 'expon', args=param)
+                # ks_stats[chan,freq], ks_pvals[chan,freq] = sp.stats.kstest(abs(self.spg)**2[chan,freq,:], 'expon', args=param)
         self.exp_scale = exp_scale
         self.ks_pvals = ks_pvals
         self.ks_stats = ks_stats
@@ -218,7 +218,7 @@ class SCA:
         """
         Plot the histogram of a single frequency, at a single channel.
         """
-        spg_slice = self.spg[chan,freq_ind,:]
+        spg_slice = abs(self.spg)**2[chan,freq_ind,:]
         rv = expon(scale=sp.stats.expon.fit(spg_slice,floc=0)[1])
         if plot_cdf:
             # plot CDF
