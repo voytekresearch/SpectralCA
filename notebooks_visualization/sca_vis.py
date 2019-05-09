@@ -20,7 +20,7 @@ from ipywidgets import Layout, HBox, interactive
 output_notebook()
 
 def plot_vis(sc, chan=0, select_freq=10, select_bin=20):
-
+    
     freq_vals = sc.f_axis[1:]
     psd_vals = sc.psd[chan].T[1:]
     scv_vals = sc.scv[chan].T[1:]
@@ -34,10 +34,12 @@ def plot_vis(sc, chan=0, select_freq=10, select_bin=20):
 
     # set up interact
     # f: frequency
+    # create interact
     def update_spct_hist(channel=1, f=10, numbins=20):
+        spg = abs(sc.spg)**2
         plot_chan = int(channel)
         plot_freq = np.where(sc.f_axis==f)[0][0]
-        y, x = np.histogram(sc.spg[plot_chan,plot_freq,:], bins=numbins, density=True)
+        y, x = np.histogram(spg[plot_chan,plot_freq,:], bins=numbins, density=True)
 
         # create a column data source for the plots to share
         data_source = {
@@ -53,7 +55,7 @@ def plot_vis(sc, chan=0, select_freq=10, select_bin=20):
         hist_plot.data_source.data['right'] = x[1:]
         hist_plot.data_source.data['top'] = y    
         # update fitted
-        rv = expon(scale=sp.stats.expon.fit(sc.spg[plot_chan,plot_freq,:],floc=0)[1])
+        rv = expon(scale=sp.stats.expon.fit(spg[plot_chan,plot_freq,:],floc=0)[1])
         fit_plot.data_source.data['x'] = x
         fit_plot.data_source.data['y'] = rv.pdf(x)
 
@@ -61,13 +63,11 @@ def plot_vis(sc, chan=0, select_freq=10, select_bin=20):
         push_notebook()
 
     # set up histogram
-    y, x = np.histogram(sc.spg[0,10,:], bins=20, density=True)
+    y, x = np.histogram(abs(sc.spg**2)[0,10,:], bins=20, density=True)
     hist_fig = figure(plot_height=300, plot_width=300, x_axis_label='Power', y_axis_label='Probability')
-    hist_fig.axis.visible = False
+    hist_plot = hist_fig.quad(top=y, bottom=0, left=x[:-1], right=x[1:], fill_color='#295B99', line_color="#033649", )
     hist_fig.title.text = 'Freq = %.1fHz, p-value = %.4f'%(10, sc.ks_pvals[int(1), 10])
     hist_fig.axis.major_label_text_font_size= '0pt'
-    hist_plot = hist_fig.quad(top=y, bottom=0, left=x[:-1], right=x[1:], fill_color='#295B99', line_color="#033649")
-
     fit_plot = hist_fig.line(x[:-1],y, line_width=8,alpha=0.7,line_color="#D53B54",legend='Fit PDF')
 
     # set up psd plot
@@ -94,9 +94,14 @@ def plot_vis(sc, chan=0, select_freq=10, select_bin=20):
     psd_plot.add_layout(vline_psd)
     scv_plot.add_layout(vline_scv)
 
-    # set up layout and interact tools 
+    # set up layout and interact toola
     layout = column(row(psd_plot, scv_plot, hist_fig))
     show(layout, notebook_handle=True)
+
+    import warnings
+    from ipywidgets import Layout, HBox, interactive
+
+    warnings.filterwarnings('ignore')
     widget = interactive(update_spct_hist, channel=range(1,len(DEFAULT_TICKERS)-1), f=(1,199), numbins=(10,55,5))
     items = [kid for kid in widget.children]
     display(HBox(children=items))
