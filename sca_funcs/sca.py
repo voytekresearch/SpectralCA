@@ -166,9 +166,10 @@ class SCA:
         exp_scale = np.zeros_like(self.psd)
         ks_pvals = np.zeros_like(self.psd)
         ks_stats = np.zeros_like(self.psd)
+        spg_ = abs(self.spg)**2
         for chan in range(self.numchan):
             for freq in range(len(self.f_axis)):
-                exp_scale[chan,freq],ks_stats[chan,freq],ks_pvals[chan,freq]=fit_test_exp(abs(self.spg)**2[chan,freq,:],floc=0)
+                exp_scale[chan,freq],ks_stats[chan,freq],ks_pvals[chan,freq]=fit_test_exp(spg_[chan,freq,:],floc=0)
                 # param = sp.stats.expon.fit(abs(self.spg)**2[chan,freq,:],floc=0)
                 # exp_scale[chan,freq] = param[1]
                 # ks_stats[chan,freq], ks_pvals[chan,freq] = sp.stats.kstest(abs(self.spg)**2[chan,freq,:], 'expon', args=param)
