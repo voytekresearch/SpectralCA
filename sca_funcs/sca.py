@@ -3,7 +3,7 @@ import scipy as sp
 import matplotlib.pyplot as plt
 from scipy.stats import expon
 import neurodsp as ndsp
-from neurodsp.timefrequency import _hilbert_ignore_nan
+#from neurodsp.timefrequency import _hilbert_ignore_nan
 from . import utils
 
 import time
@@ -324,56 +324,56 @@ def fit_test_exp(data, floc=0):
     ks_stat, ks_pval = sp.stats.kstest(data, 'expon', args=param)
     return exp_scale, ks_stat, ks_pval
 
-def compute_BP_HT(data, fs, passband, N_cycles=5, ac_thr=0.05):
-    """ Compute bandpass filtered Hilbert transforms.
-
-    Parameters
-    ----------
-    data : array, 1D
-        Time-series to be filtered.
-    fs : float, Hz
-        Sampling rate.
-    passband : tuple, (f_low, f_high)
-        Bandpass pass band, 0 if disregard.
-    N_cycles : int, default=5
-        Number of cycles of filter.
-    ac_thr : float
-        Autocorrelation threshold to determine as effective filter length.
-
-    Returns
-    -------
-    sig_power : array, 1D
-        Hilbert power.
-    sig_phase : array, 1D
-        Hilbert phase.
-    valid_inds : array, 1D
-        Valid indices of the filtered time-series (non-NaNs).
-    ker_len : int, samples
-        Effective filter length.
-    """
-    # bandpass filter data
-    if passband[0]<=0.:
-        # passband starts from 0Hz, lowpass
-        data_filt, filt_ker = ndsp.filter(data,fs,'lowpass',f_lo=passband[1],N_cycles=N_cycles,return_kernel=True)
-    elif passband[1]<=0.:
-        # highpass
-        data_filt, filt_ker = ndsp.filter(data,fs,'highpass',f_hi=passband[0],N_cycles=N_cycles,return_kernel=True)
-    else:
-        # bandpass
-        #data_filt, filt_ker = ndsp.filter(data,fs,'bandpass',f_lo=passband[0],f_hi=passband[1],N_cycles=N_cycles,return_kernel=True)
-        data_filt, filt_ker = ndsp.filter(data,fs,'bandpass',fc=passband,N_cycles=N_cycles,return_kernel=True)
-
-    # get effective filter length where autocorrelation drops below the threshold for the last time
-    ker_len = np.where(np.abs(utils.autocorr(filt_ker)[1])>=ac_thr)[0][-1]+1
-
-    # use neurodsp Hilbert function to automatically pad to power of 2
-    HT = _hilbert_ignore_nan(data_filt,hilbert_increase_N=True)
-    sig_power = np.abs(HT)**2
-    sig_phase = np.angle(HT)
-
-    # also return data-valid indices for convenience
-    valid_inds = np.where(~np.isnan(data_filt))[0]
-    return sig_power, sig_phase, valid_inds, ker_len
+# def compute_BP_HT(data, fs, passband, N_cycles=5, ac_thr=0.05):
+#     """ Compute bandpass filtered Hilbert transforms.
+#
+#     Parameters
+#     ----------
+#     data : array, 1D
+#         Time-series to be filtered.
+#     fs : float, Hz
+#         Sampling rate.
+#     passband : tuple, (f_low, f_high)
+#         Bandpass pass band, 0 if disregard.
+#     N_cycles : int, default=5
+#         Number of cycles of filter.
+#     ac_thr : float
+#         Autocorrelation threshold to determine as effective filter length.
+#
+#     Returns
+#     -------
+#     sig_power : array, 1D
+#         Hilbert power.
+#     sig_phase : array, 1D
+#         Hilbert phase.
+#     valid_inds : array, 1D
+#         Valid indices of the filtered time-series (non-NaNs).
+#     ker_len : int, samples
+#         Effective filter length.
+#     """
+#     # bandpass filter data
+#     if passband[0]<=0.:
+#         # passband starts from 0Hz, lowpass
+#         data_filt, filt_ker = ndsp.filter(data,fs,'lowpass',f_lo=passband[1],N_cycles=N_cycles,return_kernel=True)
+#     elif passband[1]<=0.:
+#         # highpass
+#         data_filt, filt_ker = ndsp.filter(data,fs,'highpass',f_hi=passband[0],N_cycles=N_cycles,return_kernel=True)
+#     else:
+#         # bandpass
+#         #data_filt, filt_ker = ndsp.filter(data,fs,'bandpass',f_lo=passband[0],f_hi=passband[1],N_cycles=N_cycles,return_kernel=True)
+#         data_filt, filt_ker = ndsp.filter(data,fs,'bandpass',fc=passband,N_cycles=N_cycles,return_kernel=True)
+#
+#     # get effective filter length where autocorrelation drops below the threshold for the last time
+#     ker_len = np.where(np.abs(utils.autocorr(filt_ker)[1])>=ac_thr)[0][-1]+1
+#
+#     # use neurodsp Hilbert function to automatically pad to power of 2
+#     HT = _hilbert_ignore_nan(data_filt,hilbert_increase_N=True)
+#     sig_power = np.abs(HT)**2
+#     sig_phase = np.angle(HT)
+#
+#     # also return data-valid indices for convenience
+#     valid_inds = np.where(~np.isnan(data_filt))[0]
+#     return sig_power, sig_phase, valid_inds, ker_len
 
 def _return_meanstd(data, axis=0):
     return np.mean(data,axis), np.std(data,axis)
