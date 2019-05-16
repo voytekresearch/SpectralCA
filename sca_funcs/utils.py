@@ -90,7 +90,7 @@ def plot_power_examples(data, fs, t_spg, pwr_dgt, rank_freqs, plot_t=1., N_cycle
     # filter data and multiplier power constant for ease of visualization
     if power_adj:
         data_filt = ndsp.filt.filter_signal(
-            data, fs, 'bandpass', fc=rank_freqs, n_cycles=N_cycles) * power_adj
+            data, fs, 'bandpass', f_range=rank_freqs, n_cycles=N_cycles) * power_adj
 
     plot_len = int(plot_t*fs/2)
     t_plot = np.arange(-plot_len, plot_len) / fs
