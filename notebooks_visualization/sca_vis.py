@@ -38,15 +38,15 @@ def plot_vis(sc, chan=0, select_freq=10, select_bin=20):
     
     # create interact
     def update_spct(channel=1, f=10, numbins=20):    
-        plot_chan = int(channel)
+        plot_chan = int(channel-1)
         plot_freq = np.where(sc.f_axis==f)[0][0]
         y, x = np.histogram(abs(sc.spg[plot_chan,plot_freq,:])**2, bins=numbins, density=True)
 
         # create a column data source for the plots to share
         data_source = {
                        'freq_vals': sc.f_axis[1:],
-                       'psd_vals': sc.psd[channel].T[1:],
-                       'scv_vals': sc.scv[channel].T[1:]
+                       'psd_vals': sc.psd[plot_chan].T[1:],
+                       'scv_vals': sc.scv[plot_chan].T[1:]
                        }   
         source.data = data_source
         vline_psd.location = f
@@ -61,10 +61,10 @@ def plot_vis(sc, chan=0, select_freq=10, select_bin=20):
         fit_plot.data_source.data['y'] = rv.pdf(x)
 
         # update complex data
-        complex_source.data['real_vals'] = sc.spg.real[channel][f]
-        complex_source.data['imag_vals'] = sc.spg.imag[channel][f]
+        complex_source.data['real_vals'] = sc.spg.real[plot_chan][f]
+        complex_source.data['imag_vals'] = sc.spg.imag[plot_chan][f]
 
-        hist_fig.title.text = 'Freq = %.1fHz, p-value = %.4f'%(f, sc.ks_pvals[int(channel), f])
+        hist_fig.title.text = 'Freq = %.1fHz, p-value = %.4f'%(f, sc.ks_pvals[int(plot_chan), f])
         push_notebook()
 
     plot_side_length = 310
@@ -119,6 +119,6 @@ def plot_vis(sc, chan=0, select_freq=10, select_bin=20):
     show(layout, notebook_handle=True)
 
     warnings.filterwarnings('ignore')
-    widget = interactive(update_spct, channel=range(1,len(DEFAULT_TICKERS)-1), f=(1,199), numbins=(10,55,5))
+    widget = interactive(update_spct, channel=range(1,len(DEFAULT_TICKERS)+1), f=(1,199), numbins=(10,55,5))
     items = [kid for kid in widget.children]
     display(HBox(children=items))
