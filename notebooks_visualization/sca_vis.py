@@ -43,7 +43,7 @@ def percentile_spectrogram(spg, f_axis, rank_freqs=(8., 12.), pct=(0, 25, 50, 75
     return power_dgt, power_binned
 
 
-def plot_pct_spectrogram(sc, chan=0, rank_freqs=(30,50), pct_step=20, plot_side_length=350):
+def plot_pct_spectrogram(sc, chan=0, rank_freqs=(8,12), pct_step=25, plot_side_length=350):
     
     # calculating the percentile spectrogram
     pct_range = range(0,100,pct_step)
@@ -78,7 +78,7 @@ def plot_pct_spectrogram(sc, chan=0, rank_freqs=(30,50), pct_step=20, plot_side_
     show(pct_spct_plot, notebook_handle=True)
     
     # create interact
-    def update_pct_spct(channel=1, rank_freqs=(30,50), pct_step=20):   
+    def update_pct_spct(channel=1, rank_freqs=(8,12), pct_step=25):   
         
         # updating information based on sliders
         plot_chan = int(channel-1)
@@ -103,9 +103,9 @@ def plot_pct_spectrogram(sc, chan=0, rank_freqs=(30,50), pct_step=20, plot_side_
     # defining the widge we are using
     widget = interactive(update_pct_spct, channel=range(1,len(DEFAULT_TICKERS)+1), 
                                      rank_freqs=widgets.IntRangeSlider(
-                                                value=[30, 50],
+                                                value=[8, 12],
                                                 min=1,
-                                                max=100,
+                                                max=199,
                                                 step=1,
                                                 description='rank_freqs',
                                                 disabled=False,
