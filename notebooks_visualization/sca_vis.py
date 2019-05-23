@@ -1,6 +1,7 @@
 # imports
 import numpy as np
 import scipy as sp
+import matplotlib.pyplot as plt
 from scipy.stats import expon
 import glob
 
@@ -8,18 +9,115 @@ import neurodsp as ndsp
 import warnings
 warnings.filterwarnings('ignore')
 
+from sca_funcs import utils
+
 # bokeh imports
 import bokeh
 from bokeh.io import push_notebook, show, output_notebook
 from bokeh.plotting import figure, output_file, show
 from bokeh.layouts import row, column
-from bokeh.models import ColumnDataSource, Slider, Span
+from bokeh.models import ColumnDataSource, Slider, Span, BoxAnnotation
 from bokeh.models.widgets import Select, Slider
+from bokeh.models.glyphs import Rect
+from bokeh.palettes import viridis
+
+import ipywidgets as widgets
 from ipywidgets import Layout, HBox, interactive
 
 output_notebook()
 
-def plot_vis(sc, chan=0, select_freq=10, select_bin=20):
+def percentile_spectrogram(spg, f_axis, rank_freqs=(8., 12.), pct=(0, 25, 50, 75), sum_log_power=True):
+    f_ind = np.where(np.logical_and(
+        f_axis >= rank_freqs[0], f_axis <= rank_freqs[1]))
+
+    if sum_log_power:
+        power_vals = np.sum(np.log10(spg[f_ind, :][0]), axis=0)
+    else:
+        power_vals = np.sum(spg[f_ind, :][0], axis=0)
+
+    bins = np.percentile(power_vals, q=pct)
+    power_dgt = np.digitize(power_vals, bins, right=False)
+    power_binned = np.asarray(
+        [np.mean(spg[:, power_dgt == i], axis=1) for i in np.unique(power_dgt)])
+    
+    return power_dgt, power_binned
+
+
+def plot_pct_spectrogram(sc, chan=0, rank_freqs=(30,50), pct_step=20, plot_side_length=350):
+    
+    # calculating the percentile spectrogram
+    pct_range = range(0,100,pct_step)
+    power_dgt, power_binned = percentile_spectrogram(np.abs(sc.spg[chan,:,:]**2), sc.f_axis, rank_freqs, pct_range);
+    numlines = power_binned.T[1:].shape[1]
+    freq_vals = [sc.f_axis[1:]]*numlines
+    power = list(zip(*power_binned.T[1:].tolist()))
+    
+    # color it accordingly
+    palette = viridis(numlines)
+    
+    # filling in data
+    chan_count, freq = sc.psd.shape
+    DEFAULT_TICKERS = list(map(str, range(chan_count)))
+    
+    source = ColumnDataSource(data=dict(freq_vals=freq_vals, 
+                                        power=power,
+                                        color=palette))
+
+    # set up plot
+    pct_spct_plot = figure(title='Percentile Spectrogram', x_axis_type='log', y_axis_type='log', 
+                           plot_width=plot_side_length, plot_height=plot_side_length)
+    pct_spct_plot.legend.location = 'top_left'
+    
+    # plotting the box
+    bg_box = BoxAnnotation(left=rank_freqs[0], right=rank_freqs[1], fill_color='grey', fill_alpha=0.2, line_alpha=0)
+    pct_spct_plot.add_layout(bg_box)
+    
+    # plotting the multi line
+    pct_spct_plot.multi_line(xs='freq_vals', ys='power', color='color', source=source)
+
+    show(pct_spct_plot, notebook_handle=True)
+    
+    # create interact
+    def update_pct_spct(channel=1, rank_freqs=(30,50), pct_step=20):   
+        
+        # updating information based on sliders
+        plot_chan = int(channel-1)
+        pct_range = range(0,100,pct_step)
+        power_dgt, power_binned = percentile_spectrogram(np.abs(sc.spg[plot_chan,:,:])**2, sc.f_axis, rank_freqs, pct_range);
+        numlines = power_binned.T[1:].shape[1]
+        freq_vals = [sc.f_axis[1:]]*numlines
+        power = list(zip(*power_binned.T[1:].tolist()))
+
+        palette = viridis(numlines)
+
+        # create a column data source for the plots to share
+        updated_source = dict(freq_vals=freq_vals, power=power, color=palette)
+
+        source.data = updated_source
+        
+        # update box position
+        bg_box.left = rank_freqs[0]
+        bg_box.right = rank_freqs[1]
+        push_notebook()
+        
+    # defining the widge we are using
+    widget = interactive(update_pct_spct, channel=range(1,len(DEFAULT_TICKERS)+1), 
+                                     rank_freqs=widgets.IntRangeSlider(
+                                                value=[30, 50],
+                                                min=1,
+                                                max=100,
+                                                step=1,
+                                                description='rank_freqs',
+                                                disabled=False,
+                                                continuous_update=False,
+                                                orientation='horizontal',
+                                                readout=True,
+                                                readout_format='d',
+                                            ), pct_step=(5,100,5))
+    items = [kid for kid in widget.children]
+    display(HBox(children=items))
+
+def plot_vis(sc, chan=0, select_freq=10, select_bin=20, plot_side_length=310):
     
     freq_vals = sc.f_axis[1:]
     psd_vals = sc.psd[chan].T[1:]
@@ -66,8 +164,6 @@ def plot_vis(sc, chan=0, select_freq=10, select_bin=20):
 
         hist_fig.title.text = 'Freq = %.1fHz, p-value = %.4f'%(f, sc.ks_pvals[int(plot_chan), f])
         push_notebook()
-
-    plot_side_length = 310
     
     # set up histogram
     y, x = np.histogram(abs(sc.spg**2)[0,10,:], bins=20, density=True)
@@ -122,3 +218,4 @@ def plot_vis(sc, chan=0, select_freq=10, select_bin=20):
     widget = interactive(update_spct, channel=range(1,len(DEFAULT_TICKERS)+1), f=(1,199), numbins=(10,55,5))
     items = [kid for kid in widget.children]
     display(HBox(children=items))
+ 
