@@ -16,7 +16,7 @@ import bokeh
 from bokeh.io import push_notebook, show, output_notebook
 from bokeh.plotting import figure, output_file, show
 from bokeh.layouts import row, column
-from bokeh.models import ColumnDataSource, Slider, Span, BoxAnnotation
+from bokeh.models import ColumnDataSource, Slider, Span, BoxAnnotation, Title
 from bokeh.models.widgets import Select, Slider
 from bokeh.models.glyphs import Rect
 from bokeh.palettes import viridis
@@ -42,8 +42,38 @@ def percentile_spectrogram(spg, f_axis, rank_freqs=(8., 12.), pct=(0, 25, 50, 75
     
     return power_dgt, power_binned
 
+def power_examples(data, fs, t_spg, pwr_dgt, rank_freqs):
+    plot_t=1.
+    CKEYS = plt.rcParams['axes.prop_cycle'].by_key()['color']  # grab color rota
+    ymin, ymax = 0, 0
+    N_cycles=5
+    power_adj=5
+    
+    # filter data and multiplier power constant for ease of visualization
+    if power_adj:
+        data_filt = ndsp.filt.filter_signal(
+            data, fs, 'bandpass', f_range=rank_freqs, n_cycles=N_cycles) * power_adj
 
-def plot_pct_spectrogram(sc, chan=0, rank_freqs=(8,12), pct_step=25, plot_side_length=350):
+    plot_len = int(plot_t*fs/2)
+    t_plot = np.arange(-plot_len, plot_len) / fs
+    
+    pwr_ex = {}
+    color_list = []
+    # loop through bins
+    for ind, j in enumerate(np.unique(pwr_dgt)):
+        # grab a random window of data that fell within the current power bin
+        plot_ind = int(t_spg[np.where(pwr_dgt == j)[0]][np.random.choice(
+            len(np.where(pwr_dgt == j)[0]))] * fs)
+        y = data[plot_ind - plot_len:plot_ind + plot_len]
+        pwr_ex['raw_y' + str(ind+1)] = y - y.mean()
+        color_list.append(CKEYS[j - 1])
+        pwr_ex['filt_y'+ str(ind+1)] = data_filt[plot_ind - plot_len:plot_ind + plot_len]
+
+    pwr_ex['t_plot'] = t_plot
+    
+    return pwr_ex, color_list     
+
+def plot_pct_spectrogram(sc, chan=0, rank_freqs=(8,12), pct_step=25, plot_side_length=350, show_pct_ex=False):
     
     # calculating the percentile spectrogram
     pct_range = range(0,100,pct_step)
@@ -74,12 +104,10 @@ def plot_pct_spectrogram(sc, chan=0, rank_freqs=(8,12), pct_step=25, plot_side_l
     
     # plotting the multi line
     pct_spct_plot.multi_line(xs='freq_vals', ys='power', color='color', source=source)
-
-    show(pct_spct_plot, notebook_handle=True)
     
     # create interact
     def update_pct_spct(channel=1, rank_freqs=(8,12), pct_step=25):   
-        
+
         # updating information based on sliders
         plot_chan = int(channel-1)
         pct_range = range(0,100,pct_step)
@@ -94,11 +122,46 @@ def plot_pct_spectrogram(sc, chan=0, rank_freqs=(8,12), pct_step=25, plot_side_l
         updated_source = dict(freq_vals=freq_vals, power=power, color=palette)
 
         source.data = updated_source
-        
+
         # update box position
         bg_box.left = rank_freqs[0]
         bg_box.right = rank_freqs[1]
+
+        if show_pct_ex:
+            if pct_step == 25 or pct_step == 30:
+                power_dgt, power_binned = percentile_spectrogram(np.abs(sc.spg[plot_chan,:,:]**2), 
+                                                                 sc.f_axis, rank_freqs, pct_range);
+                pwr_ex, color = power_examples(sc.data[plot_chan,:], sc.fs, sc.t_axis, power_dgt, rank_freqs)
+                pwr_ex_source.data = pwr_ex
+                push_notebook()
+
         push_notebook()
+        
+    if show_pct_ex:
+        # power examples from the raw data
+        power_dgt, power_binned = percentile_spectrogram(np.abs(sc.spg[chan,:,:]**2), sc.f_axis, rank_freqs, pct_range);
+        pwr_ex, color = power_examples(sc.data[chan,:], sc.fs, sc.t_axis, power_dgt, rank_freqs)
+        pwr_ex_source = ColumnDataSource(data=pwr_ex)
+
+        # set up plots
+        row_layout = row()
+
+        # looping through each Q
+        for ind, j in enumerate(np.unique(power_dgt)):
+            plot_side_length = 300
+            plot = figure(plot_width=int(plot_side_length*2/3), plot_height=int(plot_side_length/3), name='Q'+str(ind+1))
+            plot.legend.location = 'top_left'
+            plot.yaxis.ticker = [0]
+            plot.grid.grid_line_alpha=0.3
+            plot.line('t_plot', 'raw_y'+str(ind+1), source=pwr_ex_source, color=color[ind])
+            plot.line('t_plot', 'filt_y'+str(ind+1), source=pwr_ex_source, line_alpha=0.5, color=color[ind])
+            plot.add_layout(Title(text='Q'+str(ind+1), align='center'), 'above')
+            row_layout.children.append(plot)
+
+        show(column(pct_spct_plot, row_layout), notebook_handle=True)
+    else:
+        show(pct_spct_plot, notebook_handle=True)
+
         
     # defining the widge we are using
     widget = interactive(update_pct_spct, channel=range(1,len(DEFAULT_TICKERS)+1), 
@@ -117,7 +180,7 @@ def plot_pct_spectrogram(sc, chan=0, rank_freqs=(8,12), pct_step=25, plot_side_l
     items = [kid for kid in widget.children]
     display(HBox(children=items))
 
-def plot_vis(sc, chan=0, select_freq=10, select_bin=20, plot_side_length=310):
+def plot_vis(sc, chan=0, select_freq=10, select_bin=20, plot_side_length=310, plot_complex=False):
     
     freq_vals = sc.f_axis[1:]
     psd_vals = sc.psd[chan].T[1:]
@@ -191,28 +254,31 @@ def plot_vis(sc, chan=0, select_freq=10, select_bin=20, plot_side_length=310):
     scv_plot.add_glyph(source, fit_line)
     scv_plot.line('freq_vals', 'scv_vals', source=source, color='navy')
 
-    # set up complex plot
-    complex_plot = figure(title='Complex SPG', plot_width=plot_side_length, plot_height=plot_side_length)
-    complex_plot.legend.location = 'top_left'
-    complex_plot.xaxis.axis_label = 'Real values'
-    complex_plot.yaxis.axis_label = 'Imaginary values'
-    basic_xline = bokeh.models.glyphs.Line(x='real_vals', y=0, line_width=5, line_alpha=0.5, line_color='darkgrey')
-    complex_plot.add_glyph(complex_source, basic_xline)
-    basic_yline = bokeh.models.glyphs.Line(x=0, y='imag_vals', line_width=5, line_alpha=0.5, line_color='darkgrey')
-    complex_plot.add_glyph(complex_source, basic_yline)
-    complex_plot.grid.grid_line_alpha=0.3
-    complex_plot.circle('real_vals', 'imag_vals', size=5, color="purple", alpha=0.5, source=complex_source)
-
-
     # add in frequency slider vertical lines
     vline_psd = Span(location=select_freq, dimension='height', line_color='red', line_dash='dashed', line_width=3)
     vline_scv = Span(location=select_freq, dimension='height', line_color='red', line_dash='dashed', line_width=3)
     psd_plot.add_layout(vline_psd)
     scv_plot.add_layout(vline_scv)
 
-    # set up layout and interact toola
-    layout = column(row(psd_plot, scv_plot), row(hist_fig, complex_plot))
-    show(layout, notebook_handle=True)
+    if plot_complex:
+        # set up complex plot
+        complex_plot = figure(title='Complex SPG', plot_width=plot_side_length, plot_height=plot_side_length)
+        complex_plot.legend.location = 'top_left'
+        complex_plot.xaxis.axis_label = 'Real values'
+        complex_plot.yaxis.axis_label = 'Imaginary values'
+        basic_xline = bokeh.models.glyphs.Line(x='real_vals', y=0, line_width=5, line_alpha=0.5, line_color='darkgrey')
+        complex_plot.add_glyph(complex_source, basic_xline)
+        basic_yline = bokeh.models.glyphs.Line(x=0, y='imag_vals', line_width=5, line_alpha=0.5, line_color='darkgrey')
+        complex_plot.add_glyph(complex_source, basic_yline)
+        complex_plot.grid.grid_line_alpha=0.3
+        complex_plot.circle('real_vals', 'imag_vals', size=5, color="purple", alpha=0.5, source=complex_source)
+        # set up layout and interact tools
+        layout = column(row(psd_plot, scv_plot), row(hist_fig, complex_plot))
+        show(layout, notebook_handle=True)
+    else:
+        # set up layout and interact tools
+        layout = row(psd_plot, scv_plot, hist_fig)
+        show(layout, notebook_handle=True)
 
     warnings.filterwarnings('ignore')
     widget = interactive(update_spct, channel=range(1,len(DEFAULT_TICKERS)+1), f=(1,199), numbins=(10,55,5))
