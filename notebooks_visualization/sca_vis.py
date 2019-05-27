@@ -44,7 +44,6 @@ def percentile_spectrogram(spg, f_axis, rank_freqs=(8., 12.), pct=(0, 25, 50, 75
 
 def power_examples(data, fs, t_spg, pwr_dgt, rank_freqs):
     plot_t=1.
-    CKEYS = plt.rcParams['axes.prop_cycle'].by_key()['color']  # grab color rota
     ymin, ymax = 0, 0
     N_cycles=5
     power_adj=5
@@ -58,7 +57,6 @@ def power_examples(data, fs, t_spg, pwr_dgt, rank_freqs):
     t_plot = np.arange(-plot_len, plot_len) / fs
     
     pwr_ex = {}
-    color_list = []
     # loop through bins
     for ind, j in enumerate(np.unique(pwr_dgt)):
         # grab a random window of data that fell within the current power bin
@@ -66,12 +64,11 @@ def power_examples(data, fs, t_spg, pwr_dgt, rank_freqs):
             len(np.where(pwr_dgt == j)[0]))] * fs)
         y = data[plot_ind - plot_len:plot_ind + plot_len]
         pwr_ex['raw_y' + str(ind+1)] = y - y.mean()
-        color_list.append(CKEYS[j - 1])
         pwr_ex['filt_y'+ str(ind+1)] = data_filt[plot_ind - plot_len:plot_ind + plot_len]
 
     pwr_ex['t_plot'] = t_plot
     
-    return pwr_ex, color_list     
+    return pwr_ex     
 
 def plot_pct_spectrogram(sc, chan=0, rank_freqs=(8,12), pct_step=25, plot_side_length=350, show_pct_ex=False):
     
@@ -131,7 +128,7 @@ def plot_pct_spectrogram(sc, chan=0, rank_freqs=(8,12), pct_step=25, plot_side_l
             if pct_step == 25 or pct_step == 30:
                 power_dgt, power_binned = percentile_spectrogram(np.abs(sc.spg[plot_chan,:,:]**2), 
                                                                  sc.f_axis, rank_freqs, pct_range);
-                pwr_ex, color = power_examples(sc.data[plot_chan,:], sc.fs, sc.t_axis, power_dgt, rank_freqs)
+                pwr_ex = power_examples(sc.data[plot_chan,:], sc.fs, sc.t_axis, power_dgt, rank_freqs)
                 pwr_ex_source.data = pwr_ex
                 push_notebook()
 
@@ -140,7 +137,7 @@ def plot_pct_spectrogram(sc, chan=0, rank_freqs=(8,12), pct_step=25, plot_side_l
     if show_pct_ex:
         # power examples from the raw data
         power_dgt, power_binned = percentile_spectrogram(np.abs(sc.spg[chan,:,:]**2), sc.f_axis, rank_freqs, pct_range);
-        pwr_ex, color = power_examples(sc.data[chan,:], sc.fs, sc.t_axis, power_dgt, rank_freqs)
+        pwr_ex = power_examples(sc.data[chan,:], sc.fs, sc.t_axis, power_dgt, rank_freqs)
         pwr_ex_source = ColumnDataSource(data=pwr_ex)
 
         # set up plots
@@ -153,8 +150,8 @@ def plot_pct_spectrogram(sc, chan=0, rank_freqs=(8,12), pct_step=25, plot_side_l
             plot.legend.location = 'top_left'
             plot.yaxis.ticker = [0]
             plot.grid.grid_line_alpha=0.3
-            plot.line('t_plot', 'raw_y'+str(ind+1), source=pwr_ex_source, color=color[ind])
-            plot.line('t_plot', 'filt_y'+str(ind+1), source=pwr_ex_source, line_alpha=0.5, color=color[ind])
+            plot.line('t_plot', 'raw_y'+str(ind+1), source=pwr_ex_source, color=palette[ind])
+            plot.line('t_plot', 'filt_y'+str(ind+1), source=pwr_ex_source, line_alpha=0.5, color=palette[ind])
             plot.add_layout(Title(text='Q'+str(ind+1), align='center'), 'above')
             row_layout.children.append(plot)
 
