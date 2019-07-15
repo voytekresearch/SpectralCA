@@ -27,6 +27,26 @@ from ipywidgets import Layout, HBox, interactive
 output_notebook()
 
 def percentile_spectrogram(spg, f_axis, rank_freqs=(8., 12.), pct=(0, 25, 50, 75), sum_log_power=True):
+    """ Compute the percentile spectrogram separated via spectral component spg
+        Input
+        spg : array, 3D (chan x frequency x time)
+            The complex (or real) components of the spectrogram
+        f_axis : array
+            The frequency axis
+        rank_freqs : tuple (frequency range)
+            The first frequency must be lower or equal to the second value.
+            The frequency range identified will be used to rank according to the percentile ranges.
+        pct : tuple
+            Percentile of the spectrogram cut offs
+        sum_log_power : boolean
+            if True, the sum of the log powers (based 10) is calculated.
+            if False, the sum of the powers is calculated
+        Return
+        power_dgt : array
+            indices in which each power data corresponds to each percentile category
+        power_binned : array
+            power data corresponds to each percentile category
+    """
     f_ind = np.where(np.logical_and(
         f_axis >= rank_freqs[0], f_axis <= rank_freqs[1]))
 
@@ -43,6 +63,21 @@ def percentile_spectrogram(spg, f_axis, rank_freqs=(8., 12.), pct=(0, 25, 50, 75
     return power_dgt, power_binned
 
 def power_examples(data, fs, t_spg, pwr_dgt, rank_freqs):
+    """ Set up data for power examples from the raw data
+        Input
+        data : array, sD (chan x frequency)
+            raw data
+        fs : int
+            sampling frequency
+        power_dgt : array
+            indices in which each power data corresponds to each percentile category
+        rank_freqs : tuple (frequency range)
+            The first frequency must be lower or equal to the second value.
+        Return
+        pwr_ex : dict
+            raw and filtered random window of data within a certain power bin
+    """
+  
     plot_t=1.
     ymin, ymax = 0, 0
     N_cycles=5
@@ -71,7 +106,22 @@ def power_examples(data, fs, t_spg, pwr_dgt, rank_freqs):
     return pwr_ex     
 
 def plot_pct_spectrogram(sc, chan=0, rank_freqs=(8,12), pct_step=25, plot_side_length=350, show_pct_ex=False):
-    
+    """ Plot percentile spectrogram
+        Input
+        sc : SCA object
+            spectral component analysis object
+        chan : int
+            channel
+        rank_freqs : tuple (frequency range)
+            The first frequency must be lower or equal to the second value.
+        pct_step : int
+            Percentile step size
+        plot_side_length : int
+            form a square plot
+        show_pct_ex : boolean
+            If true, show the percentile example from raw data.
+            Only 4 panels will show.
+    """
     # calculating the percentile spectrogram
     pct_range = range(0,100,pct_step)
     power_dgt, power_binned = percentile_spectrogram(np.abs(sc.spg[chan,:,:]**2), sc.f_axis, rank_freqs, pct_range);
@@ -104,7 +154,14 @@ def plot_pct_spectrogram(sc, chan=0, rank_freqs=(8,12), pct_step=25, plot_side_l
     
     # create interact
     def update_pct_spct(channel=1, rank_freqs=(8,12), pct_step=25):   
-
+        """ Update percentile spectrogram via interact ipywidget
+            Input
+            channel : int
+            rank_freqs : tuple (frequency range)
+                The first frequency must be lower or equal to the second value.
+            pct_step : int
+                Percentile step size
+        """
         # updating information based on sliders
         plot_chan = int(channel-1)
         pct_range = range(0,100,pct_step)
@@ -178,7 +235,21 @@ def plot_pct_spectrogram(sc, chan=0, rank_freqs=(8,12), pct_step=25, plot_side_l
     display(HBox(children=items))
 
 def plot_vis(sc, chan=0, select_freq=10, select_bin=20, plot_side_length=310, plot_complex=False):
-    
+    """ Plot PSD, SCV, KS-Pval, and complex spectrogram if desired
+        Input
+        sc : SCA object
+            spectral component analysis object
+        chan : int
+            channel selected for plotting
+        select_freq : int
+            frequency selected for plotting
+        select_bin : int
+            bin selected for plotting
+        plot_side_length : int
+            form three (or four) square plots in row layouts
+        plot_complex : boolean
+            if True, plots the complex spectrogram
+    """
     freq_vals = sc.f_axis[1:]
     psd_vals = sc.psd[chan].T[1:]
     scv_vals = sc.scv[chan].T[1:]
