@@ -52,6 +52,14 @@ class SCA:
         self.numchan, self.datalen = data.shape
         self.fs = fs
 
+    def label_channels(self, chan_labels):
+        """
+        Label the channels by their region or location or something.
+        """
+        if len(chan_names)==self.numchan:
+            self.chan_labels = chan_labels
+
+
     def populate_fourier_data(self,data,fs,f_axis,t_axis=None):
         """
         Populate object with Fourier data.
@@ -95,7 +103,7 @@ class SCA:
             self.outlier_inds = np.zeros((self.numchan,n_discard))
             for chan in range(self.numchan):
                 # discard time windows with high powers, round up so it doesn't get a zero
-                self.outlier_inds[chan,:] = np.argsort(np.mean(np.log10(self.spg[chan,:,:]), axis=0))[-n_discard:]
+                self.outlier_inds[chan,:] = np.argsort(np.mean(np.log10(abs(self.spg[chan,:,:])**2), axis=0))[-n_discard:]
                 spg_[chan,:,:] = np.delete(self.spg[chan], self.outlier_inds[chan,:], axis=-1)
             self.spg = spg_
             self.outlier_inds=self.outlier_inds.astype(int)
@@ -143,7 +151,16 @@ class SCA:
     # end
     # NFC = abs(dph(1:end-1,:))+abs(dph(2:end,:));
 
-
+    def cross_freq_corr():
+        """
+        """
+        # make pairwise correlation matrix across frequencies
+        # use logged power value
+        #np.correlate or sp.stats.pearsonr
+        # return correlation matrix and p-value matrix
+        #return
+        self.pow_corrmat = # correlation matrix
+        self.pow_pvmat = # p-value matrix
 
     # utility so I don't have to write the same 3 lines of code always.
     def compute_all_spectral(self):
@@ -191,6 +208,7 @@ class SCA:
         param_vals = [getattr(self, a) for a in param_keys]
         if save_spg:
             np.savez(npz_filename,
+             chan_labels = self.chan_labels,
              f_axis=self.f_axis,
              psd=self.psd,
              scv=self.scv,
@@ -203,6 +221,7 @@ class SCA:
             )
         else:
             np.savez(npz_filename,
+             chan_labels = self.chan_labels,
              f_axis=self.f_axis,
              psd=self.psd,
              scv=self.scv,
