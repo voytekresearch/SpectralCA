@@ -9,7 +9,7 @@ import neurodsp as ndsp
 import warnings
 warnings.filterwarnings('ignore')
 
-from sca_funcs import utils
+from sca import utils
 
 # bokeh imports
 import bokeh
@@ -133,8 +133,7 @@ def plot_pct_spectrogram(sc, chan=0, rank_freqs=(8,12), pct_step=25, plot_side_l
     palette = viridis(numlines)
     
     # filling in data
-    chan_count, freq = sc.psd.shape
-    DEFAULT_TICKERS = list(map(str, range(chan_count)))
+    DEFAULT_TICKERS = sc.chan_labels
     
     source = ColumnDataSource(data=dict(freq_vals=freq_vals, 
                                         power=power,
@@ -153,7 +152,7 @@ def plot_pct_spectrogram(sc, chan=0, rank_freqs=(8,12), pct_step=25, plot_side_l
     pct_spct_plot.multi_line(xs='freq_vals', ys='power', color='color', source=source)
     
     # create interact
-    def update_pct_spct(channel=1, rank_freqs=(8,12), pct_step=25):   
+    def update_pct_spct(channel=DEFAULT_TICKERS[0], rank_freqs=(8,12), pct_step=25):   
         """ Update percentile spectrogram via interact ipywidget
             Input
             channel : int
@@ -163,7 +162,8 @@ def plot_pct_spectrogram(sc, chan=0, rank_freqs=(8,12), pct_step=25, plot_side_l
                 Percentile step size
         """
         # updating information based on sliders
-        plot_chan = int(channel-1)
+        channel = int(channel.split('_')[1])
+        plot_chan = int(channel)
         pct_range = range(0,100,pct_step)
         power_dgt, power_binned = percentile_spectrogram(np.abs(sc.spg[plot_chan,:,:])**2, sc.f_axis, rank_freqs, pct_range);
         numlines = power_binned.T[1:].shape[1]
@@ -218,7 +218,7 @@ def plot_pct_spectrogram(sc, chan=0, rank_freqs=(8,12), pct_step=25, plot_side_l
 
         
     # defining the widge we are using
-    widget = interactive(update_pct_spct, channel=range(1,len(DEFAULT_TICKERS)+1), 
+    widget = interactive(update_pct_spct, channel=DEFAULT_TICKERS, 
                                      rank_freqs=widgets.IntRangeSlider(
                                                 value=[8, 12],
                                                 min=1,
@@ -261,13 +261,12 @@ def plot_vis(sc, chan=0, select_freq=10, select_bin=20, plot_side_length=310, pl
                                         scv_vals=scv_vals))
 
     complex_source = ColumnDataSource(data=dict(real_vals=real_vals, imag_vals=imag_vals))
-    # grabbing channel count from psd
-    chan_count, freq = sc.psd.shape
-    DEFAULT_TICKERS = list(map(str, range(chan_count)))
+    DEFAULT_TICKERS = sc.chan_labels
     
     # create interact
-    def update_spct(channel=1, f=10, numbins=20):    
-        plot_chan = int(channel-1)
+    def update_spct(channel=DEFAULT_TICKERS[0], f=10, numbins=20): 
+        channel = int(channel.split('_')[1])
+        plot_chan = int(channel)
         plot_freq = np.where(sc.f_axis==f)[0][0]
         y, x = np.histogram(abs(sc.spg[plot_chan,plot_freq,:])**2, bins=numbins, density=True)
 
@@ -349,7 +348,7 @@ def plot_vis(sc, chan=0, select_freq=10, select_bin=20, plot_side_length=310, pl
         show(layout, notebook_handle=True)
 
     warnings.filterwarnings('ignore')
-    widget = interactive(update_spct, channel=range(1,len(DEFAULT_TICKERS)+1), f=(1,199), numbins=(10,55,5))
+    widget = interactive(update_spct, channel=DEFAULT_TICKERS, f=(1,199), numbins=(10,55,5))
     items = [kid for kid in widget.children]
     display(HBox(children=items))
  

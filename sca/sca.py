@@ -151,16 +151,16 @@ class SCA:
     # end
     # NFC = abs(dph(1:end-1,:))+abs(dph(2:end,:));
 
-    def cross_freq_corr():
-        """
-        """
-        # make pairwise correlation matrix across frequencies
-        # use logged power value
-        #np.correlate or sp.stats.pearsonr
-        # return correlation matrix and p-value matrix
-        #return
-        self.pow_corrmat = # correlation matrix
-        self.pow_pvmat = # p-value matrix
+#     def cross_freq_corr():
+#         """
+#         """
+#         # make pairwise correlation matrix across frequencies
+#         # use logged power value
+#         #np.correlate or sp.stats.pearsonr
+#         # return correlation matrix and p-value matrix
+#         #return
+#         self.pow_corrmat = # correlation matrix
+#         self.pow_pvmat = # p-value matrix
 
     # utility so I don't have to write the same 3 lines of code always.
     def compute_all_spectral(self):
@@ -308,7 +308,7 @@ def sca_load_spec(npz_filename):
     """
     data = np.load(npz_filename)
     analysis_params = dict(zip(data['param_keys'], data['param_vals']))
-    data_fields = ['f_axis', 'psd', 'scv', 'ks_pvals', 'ks_stats', 'exp_scale']
+    data_fields = ['f_axis', 'psd', 'scv', 'ks_pvals', 'ks_stats', 'exp_scale', 'chan_labels']
     if 'spg' in data.keys():
         # if spectrogram was saved, load as well
         data_fields.append('spg')
