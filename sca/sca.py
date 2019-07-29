@@ -324,7 +324,10 @@ def sca_load_spec(npz_filename):
     """
     data = np.load(npz_filename)
     analysis_params = dict(zip(data['param_keys'], data['param_vals']))
-    data_fields = ['f_axis', 'psd', 'scv', 'ks_pvals', 'ks_stats', 'exp_scale', 'chan_labels']
+    data_fields = ['f_axis', 'psd', 'scv', 'ks_pvals', 'ks_stats', 'exp_scale']
+    if 'chan_labels' in data.keys():
+        # if spectrogram was saved, load as well
+        data_fields.append('chan_labels')
     if 'spg' in data.keys():
         # if spectrogram was saved, load as well
         data_fields.append('spg')

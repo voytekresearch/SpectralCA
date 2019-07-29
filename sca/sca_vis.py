@@ -59,7 +59,7 @@ def percentile_spectrogram(spg, f_axis, rank_freqs=(8., 12.), pct=(0, 25, 50, 75
     power_dgt = np.digitize(power_vals, bins, right=False)
     power_binned = np.asarray(
         [np.mean(spg[:, power_dgt == i], axis=1) for i in np.unique(power_dgt)])
-    
+
     return power_dgt, power_binned
 
 def power_examples(data, fs, t_spg, pwr_dgt, rank_freqs):
@@ -77,12 +77,12 @@ def power_examples(data, fs, t_spg, pwr_dgt, rank_freqs):
         pwr_ex : dict
             raw and filtered random window of data within a certain power bin
     """
-  
+
     plot_t=1.
     ymin, ymax = 0, 0
     N_cycles=5
     power_adj=5
-    
+
     # filter data and multiplier power constant for ease of visualization
     if power_adj:
         data_filt = ndsp.filt.filter_signal(
@@ -90,7 +90,7 @@ def power_examples(data, fs, t_spg, pwr_dgt, rank_freqs):
 
     plot_len = int(plot_t*fs/2)
     t_plot = np.arange(-plot_len, plot_len) / fs
-    
+
     pwr_ex = {}
     # loop through bins
     for ind, j in enumerate(np.unique(pwr_dgt)):
@@ -102,8 +102,8 @@ def power_examples(data, fs, t_spg, pwr_dgt, rank_freqs):
         pwr_ex['filt_y'+ str(ind+1)] = data_filt[plot_ind - plot_len:plot_ind + plot_len]
 
     pwr_ex['t_plot'] = t_plot
-    
-    return pwr_ex     
+
+    return pwr_ex
 
 def plot_pct_spectrogram(sc, chan=0, rank_freqs=(8,12), pct_step=25, plot_side_length=350, show_pct_ex=False):
     """ Plot percentile spectrogram
@@ -128,31 +128,31 @@ def plot_pct_spectrogram(sc, chan=0, rank_freqs=(8,12), pct_step=25, plot_side_l
     numlines = power_binned.T[1:].shape[1]
     freq_vals = [sc.f_axis[1:]]*numlines
     power = list(zip(*power_binned.T[1:].tolist()))
-    
+
     # color it accordingly
     palette = viridis(numlines)
-    
+
     # filling in data
     DEFAULT_TICKERS = sc.chan_labels
-    
-    source = ColumnDataSource(data=dict(freq_vals=freq_vals, 
+
+    source = ColumnDataSource(data=dict(freq_vals=freq_vals,
                                         power=power,
                                         color=palette))
 
     # set up plot
-    pct_spct_plot = figure(title='Percentile Spectrogram', x_axis_type='log', y_axis_type='log', 
+    pct_spct_plot = figure(title='Percentile Spectrogram', x_axis_type='log', y_axis_type='log',
                            plot_width=plot_side_length, plot_height=plot_side_length)
     pct_spct_plot.legend.location = 'top_left'
-    
+
     # plotting the box
     bg_box = BoxAnnotation(left=rank_freqs[0], right=rank_freqs[1], fill_color='grey', fill_alpha=0.2, line_alpha=0)
     pct_spct_plot.add_layout(bg_box)
-    
+
     # plotting the multi line
     pct_spct_plot.multi_line(xs='freq_vals', ys='power', color='color', source=source)
-    
+
     # create interact
-    def update_pct_spct(channel=DEFAULT_TICKERS[0], rank_freqs=(8,12), pct_step=25):   
+    def update_pct_spct(channel=DEFAULT_TICKERS[0], rank_freqs=(8,12), pct_step=25):
         """ Update percentile spectrogram via interact ipywidget
             Input
             channel : int
@@ -183,14 +183,14 @@ def plot_pct_spectrogram(sc, chan=0, rank_freqs=(8,12), pct_step=25, plot_side_l
 
         if show_pct_ex:
             if pct_step == 25 or pct_step == 30:
-                power_dgt, power_binned = percentile_spectrogram(np.abs(sc.spg[plot_chan,:,:]**2), 
+                power_dgt, power_binned = percentile_spectrogram(np.abs(sc.spg[plot_chan,:,:]**2),
                                                                  sc.f_axis, rank_freqs, pct_range);
                 pwr_ex = power_examples(sc.data[plot_chan,:], sc.fs, sc.t_axis, power_dgt, rank_freqs)
                 pwr_ex_source.data = pwr_ex
                 push_notebook()
 
         push_notebook()
-        
+
     if show_pct_ex:
         # power examples from the raw data
         power_dgt, power_binned = percentile_spectrogram(np.abs(sc.spg[chan,:,:]**2), sc.f_axis, rank_freqs, pct_range);
@@ -216,9 +216,9 @@ def plot_pct_spectrogram(sc, chan=0, rank_freqs=(8,12), pct_step=25, plot_side_l
     else:
         show(pct_spct_plot, notebook_handle=True)
 
-        
+
     # defining the widge we are using
-    widget = interactive(update_pct_spct, channel=DEFAULT_TICKERS, 
+    widget = interactive(update_pct_spct, channel=DEFAULT_TICKERS,
                                      rank_freqs=widgets.IntRangeSlider(
                                                 value=[8, 12],
                                                 min=1,
@@ -256,15 +256,15 @@ def plot_vis(sc, chan=0, select_freq=10, select_bin=20, plot_side_length=310, pl
     real_vals = sc.spg.real[chan][select_freq]
     imag_vals = sc.spg.imag[chan][select_freq]
 
-    source = ColumnDataSource(data=dict(freq_vals=freq_vals, 
-                                        psd_vals=psd_vals, 
+    source = ColumnDataSource(data=dict(freq_vals=freq_vals,
+                                        psd_vals=psd_vals,
                                         scv_vals=scv_vals))
 
     complex_source = ColumnDataSource(data=dict(real_vals=real_vals, imag_vals=imag_vals))
     DEFAULT_TICKERS = sc.chan_labels
-    
+
     # create interact
-    def update_spct(channel=DEFAULT_TICKERS[0], f=10, numbins=20): 
+    def update_spct(channel=DEFAULT_TICKERS[0], f=10, numbins=20):
         channel = int(channel.split('_')[1])
         plot_chan = int(channel)
         plot_freq = np.where(sc.f_axis==f)[0][0]
@@ -275,14 +275,14 @@ def plot_vis(sc, chan=0, select_freq=10, select_bin=20, plot_side_length=310, pl
                        'freq_vals': sc.f_axis[1:],
                        'psd_vals': sc.psd[plot_chan].T[1:],
                        'scv_vals': sc.scv[plot_chan].T[1:]
-                       }   
+                       }
         source.data = data_source
         vline_psd.location = f
         vline_scv.location = f
         # update histogram with data from frequency f
         hist_plot.data_source.data['left'] = x[:-1]
         hist_plot.data_source.data['right'] = x[1:]
-        hist_plot.data_source.data['top'] = y    
+        hist_plot.data_source.data['top'] = y
         # update fitted
         rv = expon(scale=sp.stats.expon.fit(abs(sc.spg[plot_chan,plot_freq,:])**2,floc=0)[1])
         fit_plot.data_source.data['x'] = x
@@ -294,7 +294,7 @@ def plot_vis(sc, chan=0, select_freq=10, select_bin=20, plot_side_length=310, pl
 
         hist_fig.title.text = 'Freq = %.1fHz, p-value = %.4f'%(f, sc.ks_pvals[int(plot_chan), f])
         push_notebook()
-    
+
     # set up histogram
     y, x = np.histogram(abs(sc.spg**2)[0,10,:], bins=20, density=True)
     hist_fig = figure(plot_height=plot_side_length, plot_width=plot_side_length, x_axis_label='Power', y_axis_label='Probability')
@@ -309,7 +309,7 @@ def plot_vis(sc, chan=0, select_freq=10, select_bin=20, plot_side_length=310, pl
     psd_plot.xaxis.axis_label = 'Frequency (Hz)'
     psd_plot.yaxis.axis_label = 'Power/Frequency (dB/Hz)'
     psd_plot.grid.grid_line_alpha=0.3
-    psd_plot.line('freq_vals', 'psd_vals', source=source)    
+    psd_plot.line('freq_vals', 'psd_vals', source=source)
 
     # set up scv plot
     scv_plot = figure(title='SCV', x_axis_type='log', y_axis_type='log', plot_width=plot_side_length, plot_height=plot_side_length)
@@ -351,4 +351,3 @@ def plot_vis(sc, chan=0, select_freq=10, select_bin=20, plot_side_length=310, pl
     widget = interactive(update_spct, channel=DEFAULT_TICKERS, f=(1,199), numbins=(10,55,5))
     items = [kid for kid in widget.children]
     display(HBox(children=items))
- 
