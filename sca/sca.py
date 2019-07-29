@@ -2,6 +2,7 @@ import numpy as np
 import scipy as sp
 import matplotlib.pyplot as plt
 from scipy.stats import expon
+from scipy.stats import pearsonr
 import neurodsp as ndsp
 #from neurodsp.timefrequency import _hilbert_ignore_nan
 from . import utils
@@ -151,16 +152,21 @@ class SCA:
     # end
     # NFC = abs(dph(1:end-1,:))+abs(dph(2:end,:));
 
-#     def cross_freq_corr():
-#         """
-#         """
-#         # make pairwise correlation matrix across frequencies
-#         # use logged power value
-#         #np.correlate or sp.stats.pearsonr
-#         # return correlation matrix and p-value matrix
-#         #return
-#         self.pow_corrmat = # correlation matrix
-#         self.pow_pvmat = # p-value matrix
+    def cross_freq_corr(self):
+        """
+        Compute pairwise correlation matrix across frequencies using logged
+        power values.
+
+        Return correlation matrix and p-value matrix
+        """
+        chan_num, freq_num = self.psd.shape
+        pow_corrmat = np.zeros((chan_num, chan_num))
+        pow_pvmat = np.zeros((chan_num, chan_num))
+        for row_chan in range(chan_num):
+            for col_chan in range(chan_num):
+                pow_corrmat[row_chan][col_chan], pow_pvmat[row_chan][col_chan] = pearsonr(np.log(sc.psd)[row_chan], np.log(sc.psd)[col_chan])
+        self.pow_corrmat = pow_corrmat # correlation matrix
+        self.pow_pvmat = pow_pvmat # p-value matrix
 
     # utility so I don't have to write the same 3 lines of code always.
     def compute_all_spectral(self):
@@ -208,14 +214,16 @@ class SCA:
         param_vals = [getattr(self, a) for a in param_keys]
         if save_spg:
             np.savez(npz_filename,
-             chan_labels = self.chan_labels,
+             chan_labels=self.chan_labels,
              f_axis=self.f_axis,
              psd=self.psd,
              scv=self.scv,
              ks_pvals=self.ks_pvals,
              ks_stats=self.ks_stats,
              exp_scale=self.exp_scale,
-             spg = self.spg,
+             pow_corrmat=self.pow_corrmat,
+             pow_pvmat=self.pow_pvmat,
+             spg=self.spg,
              param_keys=param_keys,
              param_vals=param_vals
             )
@@ -228,6 +236,8 @@ class SCA:
              ks_pvals=self.ks_pvals,
              ks_stats=self.ks_stats,
              exp_scale=self.exp_scale,
+             pow_corrmat=self.pow_corrmat,
+             pow_pvmat=self.pow_pvmat,
              param_keys=param_keys,
              param_vals=param_vals
             )
