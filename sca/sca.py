@@ -163,9 +163,9 @@ class SCA:
         pow_pvmat = np.zeros((chan_num, chan_num))
 
         if log_pow_vals:
-            pow_vals = np.log(sc.psd)
+            pow_vals = np.log(self.psd)
         else:
-            pow_vals = sc.psd
+            pow_vals = self.psd
 
         for row in range(chan_num):
             for col in range(chan_num):
