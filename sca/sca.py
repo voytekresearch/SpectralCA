@@ -152,19 +152,25 @@ class SCA:
     # end
     # NFC = abs(dph(1:end-1,:))+abs(dph(2:end,:));
 
-    def cross_freq_corr(self):
+    def cross_freq_corr(self, log_pow_vals=True):
         """
-        Compute pairwise correlation matrix across frequencies using logged
-        power values.
+        Compute pairwise correlation matrix across frequencies.
 
         Return correlation matrix and p-value matrix
         """
         chan_num, freq_num = self.psd.shape
         pow_corrmat = np.zeros((chan_num, chan_num))
         pow_pvmat = np.zeros((chan_num, chan_num))
-        for row_chan in range(chan_num):
-            for col_chan in range(chan_num):
-                pow_corrmat[row_chan][col_chan], pow_pvmat[row_chan][col_chan] = pearsonr(np.log(sc.psd)[row_chan], np.log(sc.psd)[col_chan])
+
+        if log_pow_vals:
+            pow_vals = np.log(sc.psd)
+        else:
+            pow_vals = sc.psd
+
+        for row in range(chan_num):
+            for col in range(chan_num):
+                pow_corrmat[row][col], pow_pvmat[row][col] = pearsonr(pow_vals[row],
+                                                                      pow_vals[col])
         self.pow_corrmat = pow_corrmat # correlation matrix
         self.pow_pvmat = pow_pvmat # p-value matrix
 
