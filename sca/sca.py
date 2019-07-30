@@ -158,19 +158,21 @@ class SCA:
 
         Return correlation matrix and p-value matrix
         """
-        chan_num, freq_num = self.psd.shape
-        pow_corrmat = np.zeros((chan_num, chan_num))
-        pow_pvmat = np.zeros((chan_num, chan_num))
-
+        chan_num, freq_num, time_num = (abs(self.spg)**2).shape
+        pow_corrmat = np.zeros((chan_num, freq_num, freq_num))
+        pow_pvmat = np.zeros((chan_num, freq_num, freq_num))
+        log_pow_vals = True
         if log_pow_vals:
-            pow_vals = np.log(self.psd)
+            pow_vals = np.log(abs(self.spg)**2)
         else:
-            pow_vals = self.psd
+            pow_vals = abs(self.spg)**2
 
-        for row in range(chan_num):
-            for col in range(chan_num):
-                pow_corrmat[row][col], pow_pvmat[row][col] = pearsonr(pow_vals[row],
-                                                                      pow_vals[col])
+        for chan in range(chan_num):
+            for row in range(freq_num):
+                for col in range(freq_num):
+                    pow_corrmat[chan][row][col], pow_pvmat[chan][row][col] = pearsonr(pow_vals[chan][row],
+                                                                                      pow_vals[chan][col])
+                                                                                      
         self.pow_corrmat = pow_corrmat # correlation matrix
         self.pow_pvmat = pow_pvmat # p-value matrix
 
