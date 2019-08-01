@@ -158,21 +158,25 @@ class SCA:
 
         Return correlation matrix and p-value matrix
         """
-        chan_num, freq_num, time_num = (abs(self.spg)**2).shape
+        chan_num, freq_num, time_num = (abs(sc.spg)**2).shape
         pow_corrmat = np.zeros((chan_num, freq_num, freq_num))
         pow_pvmat = np.zeros((chan_num, freq_num, freq_num))
         log_pow_vals = True
         if log_pow_vals:
-            pow_vals = np.log(abs(self.spg)**2)
+            pow_vals = np.log(abs(sc.spg)**2)
         else:
-            pow_vals = abs(self.spg)**2
+            pow_vals = abs(sc.spg)**2
 
         for chan in range(chan_num):
             for row in range(freq_num):
-                for col in range(freq_num):
+                for col in range(row, freq_num):
+                    if row == col:
+                        continue
                     pow_corrmat[chan][row][col], pow_pvmat[chan][row][col] = pearsonr(pow_vals[chan][row],
                                                                                       pow_vals[chan][col])
-                                                                                      
+                    pow_corrmat[chan][col][row] = pow_corrmat[chan][row][col]
+                    pow_pvmat[chan][col][row] = pow_pvmat[chan][row][col]
+
         self.pow_corrmat = pow_corrmat # correlation matrix
         self.pow_pvmat = pow_pvmat # p-value matrix
 
@@ -208,7 +212,7 @@ class SCA:
         self.ks_pvals = ks_pvals
         self.ks_stats = ks_stats
 
-    def save_spec_vars(self, npz_filename, save_spg=False):
+    def save_spec_vars(self, npz_filename, save_spg=False, save_corr=False):
         """ Save the spectral attributes to a .npz file.
 
         Parameters
@@ -220,7 +224,7 @@ class SCA:
         """
         param_keys = ['nperseg', 'noverlap','spg_outlierpct', 'max_freq']
         param_vals = [getattr(self, a) for a in param_keys]
-        if save_spg:
+        if save_spg and save_corr:
             np.savez(npz_filename,
              chan_labels=self.chan_labels,
              f_axis=self.f_axis,
@@ -235,6 +239,33 @@ class SCA:
              param_keys=param_keys,
              param_vals=param_vals
             )
+        elif save_spg:
+             np.savez(npz_filename,
+             chan_labels=self.chan_labels,
+             f_axis=self.f_axis,
+             psd=self.psd,
+             scv=self.scv,
+             ks_pvals=self.ks_pvals,
+             ks_stats=self.ks_stats,
+             exp_scale=self.exp_scale,
+             spg=self.spg,
+             param_keys=param_keys,
+             param_vals=param_vals
+            )
+        elif save_corr:
+            np.savez(npz_filename,
+            chan_labels=self.chan_labels,
+            f_axis=self.f_axis,
+            psd=self.psd,
+            scv=self.scv,
+            ks_pvals=self.ks_pvals,
+            ks_stats=self.ks_stats,
+            exp_scale=self.exp_scale,
+            pow_corrmat=self.pow_corrmat,
+            pow_pvmat=self.pow_pvmat,
+            param_keys=param_keys,
+            param_vals=param_vals
+           )
         else:
             np.savez(npz_filename,
              chan_labels = self.chan_labels,
