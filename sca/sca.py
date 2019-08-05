@@ -158,14 +158,14 @@ class SCA:
 
         Return correlation matrix and p-value matrix
         """
-        chan_num, freq_num, time_num = (abs(sc.spg)**2).shape
+        chan_num, freq_num, time_num = (abs(self.spg)**2).shape
         pow_corrmat = np.zeros((chan_num, freq_num, freq_num))
         pow_pvmat = np.zeros((chan_num, freq_num, freq_num))
         log_pow_vals = True
         if log_pow_vals:
-            pow_vals = np.log(abs(sc.spg)**2)
+            pow_vals = np.log(abs(self.spg)**2)
         else:
-            pow_vals = abs(sc.spg)**2
+            pow_vals = abs(self.spg)**2
 
         for chan in range(chan_num):
             for row in range(freq_num):
