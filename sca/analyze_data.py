@@ -14,22 +14,23 @@ def main():
     run_mni_rest_analysis()
 
 def run_mni_rest_analysis():
-
     # data source
-    data_path = '/Users/ldliao/Research/Data/MNI_rest_ECoG/WakefulnessMatlabFile.mat'
-    data = io.loadmat(data_path, squeeze_me=True)
+     data_path = '/Users/ldliao/Research/Data/MNI_rest_ECoG/WakefulnessMatlabFile.mat'
+    data = io.loadmat(data_path, squeeze_me=True)    
     saveout_path = '/Users/ldliao/Research/Projects/spectralCA/results/mni_rest/'
 
-    fs = 200.
+    fs = data['SamplingFrequency']
     # sca params
     analysis_param = {'nperseg': 200,
                      'noverlap': 0,
                      'spg_outlierpct': 2.,
                      'max_freq':200}
 
+    patient = data['Patient']
+
     # getting the different indices start
     ind = [ind for ind in np.where(patient[:-1] != patient[1:])[0]]
-    ind.insert(0,0)
+    ind.insert(0,0) 
 
     # make dir
     subj_path = saveout_path
@@ -41,24 +42,29 @@ def run_mni_rest_analysis():
         sub_data = data['Data'][ind[idx]:ind[idx+1]]
         sub_chanlab = data['ChannelName'][ind[idx]:ind[idx+1]]
         ch_num, ch_datalen = sub_data.shape
+
         for i in range(ch_num):
             sub_chanlab = [ch+'_'+str(i) for ch in sub_chanlab]
 
         sub_sc = sca.SCA(analysis_param)
         sub_sc.populate_ts_data(sub_data, fs)
+        sub_f_axis, sub_t_axis, sub_spg = sp.signal.spectrogram(sub_data, sub_sc.fs, 'hann', 
+                                                                sub_sc.nperseg, sub_sc.noverlap, mode='complex')
+        sub_sc.populate_spg(sub_f_axis, sub_t_axis, sub_spg)
         sub_sc.compute_all_spectral()
 
-        print('Computing patient ' + str(data['Patient'][ind[idx]]))
+
+        print('Computing exponential KS test...')
 
         sub_sc.compute_KS_expfit()
         # save channel labels
         sub_sc.chan_labels = sub_chanlab
         sub_sc.cross_freq_corr()
 
-        # save out sca
+        # save out sca      
         sub_path = saveout_path+'patient_'+str(data['Patient'][ind[idx]])
         sub_sc.save_spec_vars(sub_path+'.npz', save_spg=True)
-
+        
 def run_kjm_analysis():
 
     def get_trial_info(cue_sig, move_sig, L_win=1000, L_lag=2000, alpha=0.95):

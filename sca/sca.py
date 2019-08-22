@@ -44,6 +44,12 @@ class SCA:
         }
         return param_dict
 
+    def populate_spg(self,f_axis,t_axis,spg):
+        """
+        Populate object with the spectrogram.
+        """
+        self.f_axis,self.t_axis,self.spg = f_axis,t_axis,spg
+        
     def populate_ts_data(self,data,fs):
         """
         Populate object with time-series data.
@@ -95,7 +101,10 @@ class SCA:
         """
         Compute spectrogram of time-series data.
         """
-        self.f_axis,self.t_axis,self.spg = sp.signal.spectrogram(self.data,fs=self.fs,nperseg=int(self.nperseg),noverlap=int(self.noverlap),mode='complex')
+        self.f_axis,self.t_axis,self.spg = sp.signal.spectrogram(self.data,fs=self.fs,
+                                                                 nperseg=int(self.nperseg),
+                                                                 noverlap=int(self.noverlap),
+                                                                 mode='complex')
 
         if self.spg_outlierpct>0.:
             n_discard = int(np.ceil(len(self.t_axis) / 100. * self.spg_outlierpct))
@@ -185,9 +194,14 @@ class SCA:
         """
         Compute all spectral representations.
         """
-        self.compute_spg()
-        self.compute_psd()
-        self.compute_scv()
+        try:
+            if self.spg.shape != 0:
+                self.compute_psd()
+                self.compute_scv()
+        except AttributeError:
+            self.compute_spg()
+            self.compute_psd()
+            self.compute_scv()
 
     # fit spectrogram slices against exponential distribution and
     # calculate KS-test statistics and p-values
