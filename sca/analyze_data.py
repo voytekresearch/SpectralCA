@@ -37,14 +37,10 @@ def run_mni_rest_analysis():
     if not os.path.isdir(subj_path):
         os.mkdir(subj_path)
 
-
     for idx in range(len(ind)-1):
         sub_data = data['Data'][ind[idx]:ind[idx+1]]
-        sub_chanlab = data['ChannelName'][ind[idx]:ind[idx+1]]
-        ch_num, ch_datalen = sub_data.shape
-
-        for i in range(ch_num):
-            sub_chanlab = [ch+'_'+str(i) for ch in sub_chanlab]
+        sub_chanlab = data['ChannelName'][ind[idx]:ind[idx+1]].T
+        sub_chanlab = ['chan_'+str(i)+'_'+ch for i, ch in enumerate(sub_chanlab)]
 
         sub_sc = sca.SCA(analysis_param)
         sub_sc.populate_ts_data(sub_data, fs)
@@ -188,3 +184,5 @@ def run_kjm_analysis():
             np.savez(subj_path+'trial_info.npz', trial_info=trial_info, elec_regions=data['elec_regions'])
         else:
             print('Skipped subject.')
+            
+       

@@ -301,7 +301,9 @@ def plot_vis(sc, chan=0, select_freq=10, select_bin=20, plot_side_length=310, pl
     hist_plot = hist_fig.quad(top=y, bottom=0, left=x[:-1], right=x[1:], fill_color='purple', line_color="lightblue")
     hist_fig.title.text = 'Freq = %.1fHz, p-value = %.4f'%(10, sc.ks_pvals[int(1), 10])
     hist_fig.axis.major_label_text_font_size= '0pt'
-    fit_plot = hist_fig.line(x[:-1],y, line_width=8,alpha=0.7,line_color="#D53B54",legend='Fit PDF')
+    rv = expon(scale=sp.stats.expon.fit(abs(sc.spg[chan,select_freq,:])**2,floc=0)[1])
+    fit_plot = hist_fig.line(x,rv.pdf(x), line_width=8,alpha=0.7,line_color="#D53B54",legend='Fit PDF')
+
 
     # set up psd plot
     psd_plot = figure(title='PSD', x_axis_type='log', y_axis_type='log', plot_width=plot_side_length, plot_height=plot_side_length)
