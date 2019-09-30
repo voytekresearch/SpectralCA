@@ -63,7 +63,7 @@ class SCA:
         """
         Label the channels by their region or location or something.
         """
-        if len(chan_names)==self.numchan:
+        if len(chan_labels)==self.numchan:
             self.chan_labels = chan_labels
 
 
