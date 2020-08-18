@@ -49,7 +49,7 @@ class SCA:
         Populate object with the spectrogram.
         """
         self.f_axis,self.t_axis,self.spg = f_axis,t_axis,spg
-        
+
     def populate_ts_data(self,data,fs):
         """
         Populate object with time-series data.
