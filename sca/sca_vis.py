@@ -144,6 +144,9 @@ def plot_pct_spectrogram(sc, chan=0, rank_freqs=(8,12), pct_step=25, plot_side_l
                            plot_width=plot_side_length, plot_height=plot_side_length)
     pct_spct_plot.legend.location = 'top_left'
 
+    pct_spct_plot.y_range.flipped = True
+    pct_spct_plot.x_range.flipped = True
+
     # plotting the box
     bg_box = BoxAnnotation(left=rank_freqs[0], right=rank_freqs[1], fill_color='grey', fill_alpha=0.2, line_alpha=0)
     pct_spct_plot.add_layout(bg_box)

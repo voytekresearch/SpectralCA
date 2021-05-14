@@ -63,7 +63,7 @@ class SCA:
         """
         Label the channels by their region or location or something.
         """
-        if len(chan_names)==self.numchan:
+        if len(chan_labels)==self.numchan:
             self.chan_labels = chan_labels
 
 
@@ -114,7 +114,8 @@ class SCA:
             for chan in range(self.numchan):
                 # discard time windows with high powers, round up so it doesn't get a zero
                 self.outlier_inds[chan,:] = np.argsort(np.mean(np.log10(abs(self.spg[chan,:,:])**2), axis=0))[-n_discard:]
-                spg_[chan,:,:] = np.delete(self.spg[chan], self.outlier_inds[chan,:], axis=-1)
+                idx_outliers = self.outlier_inds[chan, :].astype('int')
+                spg_[chan,:,:] = np.delete(self.spg[chan], idx_outliers, axis=-1)
             self.spg = spg_
             self.outlier_inds=self.outlier_inds.astype(int)
 
